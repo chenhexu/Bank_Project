@@ -1,0 +1,89 @@
+.digit-scroll-wrapper {
+  height: 1em;
+  width: 0.65em;
+  overflow: hidden;
+  display: inline-block;
+  position: relative;
+  vertical-align: bottom;
+}
+
+.digit-scroll {
+  display: flex;
+  flex-direction: column;
+  will-change: transform;
+}
+
+.digit-scroll-animating {
+  /* Enhanced animation state */
+}
+
+.digit {
+  height: 1em;
+  line-height: 1em;
+  text-align: center;
+  font-weight: 900;
+  font-size: inherit;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  backface-visibility: hidden;
+  transform: translateZ(0);
+  transition: color 0.1s ease;
+}
+
+.digit-scroll-animating .digit {
+  color: #22c55e; /* Green color during animation */
+  text-shadow: 0 0 8px rgba(34, 197, 94, 0.3);
+}
+
+.digit-static {
+  display: inline-block;
+  width: 0.65em;
+  text-align: center;
+  font-weight: 900;
+  font-size: inherit;
+  vertical-align: bottom;
+}
+
+/* Enhanced gradient overlays for better stopwatch effect */
+.digit-scroll-wrapper::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 25%;
+  background: linear-gradient(to bottom, 
+    rgba(255, 255, 255, 0.95) 0%, 
+    rgba(255, 255, 255, 0.8) 50%, 
+    transparent 100%);
+  pointer-events: none;
+  z-index: 1;
+  border-radius: 2px 2px 0 0;
+}
+
+.digit-scroll-wrapper::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 25%;
+  background: linear-gradient(to top, 
+    rgba(255, 255, 255, 0.95) 0%, 
+    rgba(255, 255, 255, 0.8) 50%, 
+    transparent 100%);
+  pointer-events: none;
+  z-index: 1;
+  border-radius: 0 0 2px 2px;
+}
+
+/* Add subtle border for better definition */
+.digit-scroll-wrapper {
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  background: rgba(255, 255, 255, 0.1);
+}
+
+/* Animation state styling */
+.digit-scroll-wrapper.digit-scroll-animating {
+  border-color: rgba(34, 197, 94, 0.3);
+  box-shadow: 0 0 4px rgba(34, 197, 94, 0.2);
+}
