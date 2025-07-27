@@ -1,0 +1,127 @@
+/* phone-input-custom.css */
+.react-tel-input {
+  width: 320px !important;
+  font-family: inherit !important;
+  display: flex !important;
+  gap: 1rem !important;
+  margin: 0 auto !important;
+  justify-content: flex-start !important;
+}
+
+.react-tel-input .form-control {
+  width: 220px !important;
+  flex-shrink: 0 !important;
+  margin-left: 6rem !important;
+  border-radius: 0.75rem !important; /* rounded-xl */
+  border: 2px solid #3b82f6 !important; /* border-blue-500 - more visible */
+  padding: 0.75rem 1rem !important;
+  font-size: 1.125rem !important; /* text-lg */
+  background: #fff !important;
+  box-shadow: none !important;
+  height: 3.5rem !important;
+  transition: all 0.2s ease !important;
+}
+
+.react-tel-input .form-control:hover {
+  background: #f0f9ff !important; /* light blue hover */
+  border-color: #93c5fd !important;
+}
+
+.react-tel-input .form-control:focus {
+  border-color: #3b82f6 !important; /* border-blue-500 */
+  box-shadow: 0 0 0 2px #dbeafe !important; /* ring-blue-100 */
+  background: #fff !important;
+  outline: none !important;
+}
+
+.react-tel-input .flag-dropdown {
+  border-radius: 0.75rem !important;
+  border: 2px solid #ef4444 !important; /* border-red-500 - very visible for testing */
+  background: #fff !important;
+  box-shadow: none !important;
+  width: 5rem !important;
+  flex-shrink: 0 !important;
+  height: 3.5rem !important;
+  transition: all 0.2s ease !important;
+}
+
+.react-tel-input .flag-dropdown:hover {
+  background: #f0f9ff !important; /* light blue hover */
+  border-color: #93c5fd !important;
+}
+
+.react-tel-input .selected-flag {
+  border: none !important;
+  background: transparent !important;
+  border-radius: 0.75rem !important;
+  padding: 0.75rem 0.5rem !important;
+  height: 3.5rem !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 100% !important;
+}
+
+.react-tel-input .flag-dropdown:focus-within {
+  border-color: #3b82f6 !important;
+  box-shadow: 0 0 0 2px #dbeafe !important;
+}
+
+.react-tel-input .country-list {
+  border-radius: 0.75rem !important;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.1) !important;
+  font-size: 1rem !important;
+  z-index: 9999 !important;
+  border: 1px solid #e2e8f0 !important;
+  max-height: 200px !important;
+  overflow-y: auto !important;
+}
+
+.react-tel-input .country-list .country {
+  padding: 0.75rem 1rem !important;
+  border-bottom: 1px solid #f1f5f9 !important;
+  transition: background-color 0.2s ease !important;
+}
+
+.react-tel-input .country-list .country:hover {
+  background: #f0f9ff !important; /* light blue hover */
+}
+
+.react-tel-input .country-list .country.highlight {
+  background: #dbeafe !important;
+}
+
+/* Ensure the flag is properly positioned */
+.react-tel-input .flag-dropdown .flag {
+  margin-right: 0.5rem !important;
+}
+
+/* Make the dropdown arrow more visible */
+.react-tel-input .selected-flag .arrow {
+  border-top: 4px solid #6b7280 !important;
+  border-left: 4px solid transparent !important;
+  border-right: 4px solid transparent !important;
+  margin-left: 0.5rem !important;
+}
+
+/* Show country code instead of arrow when country is selected */
+.react-tel-input .selected-flag .arrow.down {
+  display: none !important;
+}
+
+.react-tel-input .selected-flag .arrow.up {
+  display: none !important;
+}
+
+/* Style the country code display */
+.react-tel-input .selected-flag .country-code {
+  font-size: 0.875rem !important;
+  font-weight: 500 !important;
+  color: #374151 !important;
+  margin-left: 0.5rem !important;
+}
+
+/* Ensure proper spacing between flag and country code */
+.react-tel-input .flag-dropdown .flag {
+  margin-right: 0.25rem !important;
+} 

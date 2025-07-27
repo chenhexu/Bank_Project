@@ -1,15 +1,26 @@
 "use client";
 
-import { useSearchParams, useRouter } from "next/navigation";
-import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
 
 export default function WithdrawPage() {
-  const searchParams = useSearchParams();
   const router = useRouter();
-  const username = searchParams.get("username") || "";
-  const password = searchParams.get("password") || "";
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [amount, setAmount] = useState("");
   const [message, setMessage] = useState("");
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const storedEmail = sessionStorage.getItem('email') || '';
+      const storedPass = sessionStorage.getItem('password') || '';
+      setEmail(storedEmail);
+      setPassword(storedPass);
+      if (!storedEmail || !storedPass) {
+        router.push('/login');
+      }
+    }
+  }, [router]);
 
   const handleWithdraw = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -18,13 +29,13 @@ export default function WithdrawPage() {
       const res = await fetch("http://127.0.0.1:8000/withdraw", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, password, amount: parseFloat(amount) }),
+        body: JSON.stringify({ email, password, amount: parseFloat(amount) }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.detail || "Withdraw failed");
       setMessage(`✅ ${data.message}. New balance: $${data.new_balance}`);
       setTimeout(() => {
-        router.push(`/balance?username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}`);
+        router.push(`/balance`);
       }, 1000);
     } catch (err: any) {
       setMessage(`❌ ${err.message}`);
@@ -44,8 +55,8 @@ export default function WithdrawPage() {
         </form>
         {message && <div className="mt-4 text-center text-sm text-blue-500">{message}</div>}
         <div className="mt-6 text-sm text-gray-500 flex gap-4">
-          <a href={`/balance?username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}`} className="text-blue-600 hover:underline">Back to Balance</a>
-          <a href={`/deposit?username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}`} className="text-blue-600 hover:underline">Deposit</a>
+          <a href="/balance" className="text-blue-600 hover:underline">Back to Balance</a>
+          <a href="/deposit" className="text-blue-600 hover:underline">Deposit</a>
         </div>
       </div>
     </div>
