@@ -16,7 +16,7 @@ import os
 import requests
 import json
 # Load environment variables
-load_dotenv("Api_Key.env")
+load_dotenv(".env")
 from sendgrid import SendGridAPIClient
 from sendgrid.helpers.mail import Mail
 
@@ -758,3 +758,8 @@ def reset_password(data: ResetPasswordRequest):
     mark_recovery_code_used(data.email, data.recovery_code)
     
     return {"message": "Password reset successfully"}
+
+@app.get("/")
+def health_check():
+    """Health check endpoint for Docker"""
+    return {"status": "healthy", "message": "BlueBank API is running"}

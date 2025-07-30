@@ -1,0 +1,31 @@
+{
+  "name": "bluebank",
+  "version": "1.0.0",
+  "description": "A modern banking application built with FastAPI, Next.js, and Docker",
+  "main": "index.js",
+  "scripts": {
+    "start": "docker-compose -f docker/docker-compose.yml up --build -d",
+    "dev": "docker-compose -f docker/docker-compose.dev.yml up --build -d",
+    "stop": "docker-compose -f docker/docker-compose.yml down",
+    "logs": "docker-compose -f docker/docker-compose.yml logs -f",
+    "clean": "docker-compose -f docker/docker-compose.yml down -v && docker system prune -f"
+  },
+  "keywords": [
+    "banking",
+    "fastapi",
+    "nextjs",
+    "docker",
+    "typescript",
+    "python"
+  ],
+  "author": "Your Name",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/yourusername/bluebank.git"
+  },
+  "bugs": {
+    "url": "https://github.com/yourusername/bluebank/issues"
+  },
+  "homepage": "https://github.com/yourusername/bluebank#readme"
+} 

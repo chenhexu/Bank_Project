@@ -74,7 +74,7 @@ export default function BalancePage() {
     async function fetchProfile() {
       if (!email || !password) return;
       try {
-        const res = await fetch("http://127.0.0.1:8000/profile", {
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/profile`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ email, password }),
@@ -95,7 +95,7 @@ export default function BalancePage() {
     async function fetchBalance() {
       try {
         setLoading(true);
-        const res = await fetch("http://127.0.0.1:8000/balance", {
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/balance`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ email, password }),
@@ -134,7 +134,7 @@ export default function BalancePage() {
     
     async function checkForNewTransfers() {
       try {
-        const res = await fetch("http://127.0.0.1:8000/transactions", {
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/transactions`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ email, password }),
@@ -170,7 +170,7 @@ export default function BalancePage() {
     async function fetchTransactions() {
       if (!showHistory) return;
       try {
-        const res = await fetch("http://127.0.0.1:8000/transactions", {
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/transactions`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ email, password }),
