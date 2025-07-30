@@ -11,6 +11,7 @@ type Transaction = {
   old_balance: string;
   new_balance: string;
   timestamp: string;
+  description: string;
 };
 
 export default function BalancePage() {
@@ -26,7 +27,14 @@ export default function BalancePage() {
       const storedPass = sessionStorage.getItem('password') || '';
       setEmail(storedEmail);
       setPassword(storedPass);
+      
+      console.log("Balance page - Retrieved from sessionStorage:", {
+        email: storedEmail,
+        password: storedPass
+      });
+      
       if (!storedEmail || !storedPass) {
+        console.log("No credentials found, redirecting to login");
         router.push('/login');
       }
       
@@ -47,6 +55,8 @@ export default function BalancePage() {
   const [arrowDirection, setArrowDirection] = useState<'up' | 'down' | null>(null);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [displayName, setDisplayName] = useState("");
+  const [notifications, setNotifications] = useState<string[]>([]);
+  const [showNotifications, setShowNotifications] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -117,6 +127,44 @@ export default function BalancePage() {
     }
     // eslint-disable-next-line
   }, [email, password, initialized]);
+
+  // Check for new transfer notifications
+  useEffect(() => {
+    if (!email || !password) return;
+    
+    async function checkForNewTransfers() {
+      try {
+        const res = await fetch("http://127.0.0.1:8000/transactions", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, password }),
+        });
+        if (res.ok) {
+          const data = await res.json();
+          const recentTransfers = data.filter((tx: Transaction) => 
+            (tx.type === "Transfer In" || tx.type === "Transfer Out") &&
+            new Date(tx.timestamp) > new Date(Date.now() - 60000) // Last minute
+          );
+          
+          recentTransfers.forEach((tx: Transaction) => {
+            const notification = tx.type === "Transfer In" 
+              ? `💰 Received $${tx.amount} from ${tx.description || 'an unknown user'}`
+              : `💸 Sent $${tx.amount} to ${tx.description || 'an unknown user'}`;
+            
+            if (!notifications.includes(notification)) {
+              setNotifications(prev => [...prev, notification]);
+            }
+          });
+        }
+      } catch (err) {
+        console.log("Transfer notification check error:", err);
+      }
+    }
+    
+    // Check every 30 seconds for new transfers
+    const interval = setInterval(checkForNewTransfers, 30000);
+    return () => clearInterval(interval);
+  }, [email, password, notifications]);
 
   useEffect(() => {
     async function fetchTransactions() {
@@ -202,6 +250,10 @@ export default function BalancePage() {
   };
   const goWithdraw = () => {
     router.push(`/withdraw`);
+  };
+
+  const goTransfer = () => {
+    router.push(`/transfer`);
   };
 
   // Remove old animationFrom logic and use the state
@@ -372,6 +424,13 @@ export default function BalancePage() {
                         <span className="font-bold mr-3">{number}.</span>
                         <strong>{tx.type}</strong>{" "}
                         <span className={amountColor}>${tx.amount}</span>
+                        {tx.description && (
+                          <span className={`text-sm ml-2 ${
+                            isDarkMode ? 'text-gray-400' : 'text-gray-600'
+                          }`}>
+                            ({tx.description})
+                          </span>
+                        )}
                       </p>
                       <p className={`text-base ${
                         isDarkMode ? 'text-gray-400' : 'text-gray-600'
@@ -388,6 +447,99 @@ export default function BalancePage() {
                 );
               })}
             </ul>
+          )}
+        </div>
+        <button
+          onClick={goTransfer}
+          className="mt-6 px-6 py-3 bg-green-600 hover:bg-green-700 text-white rounded-xl w-max mx-auto transition-colors text-lg font-semibold"
+        >
+          Transfer Money
+        </button>
+        
+        {/* Notification Button */}
+        <div className="fixed bottom-6 right-6 z-50">
+          <button
+            onClick={() => setShowNotifications(!showNotifications)}
+            className={`relative p-4 rounded-full shadow-lg transition-all duration-200 ${
+              isDarkMode 
+                ? 'bg-gray-700 hover:bg-gray-600 text-gray-200' 
+                : 'bg-blue-600 hover:bg-blue-700 text-white'
+            }`}
+          >
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+            </svg>
+            {notifications.length > 0 && (
+              <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-6 w-6 flex items-center justify-center">
+                {notifications.length}
+              </span>
+            )}
+          </button>
+          
+          {/* Notification Panel */}
+          {showNotifications && (
+            <div className={`absolute bottom-16 right-0 w-80 max-h-96 overflow-y-auto rounded-xl shadow-xl border ${
+              isDarkMode 
+                ? 'bg-gray-800 border-gray-600' 
+                : 'bg-white border-blue-200'
+            }`}>
+              <div className={`p-4 border-b ${
+                isDarkMode ? 'border-gray-600' : 'border-blue-200'
+              }`}>
+                <h3 className={`font-semibold text-lg ${
+                  isDarkMode ? 'text-gray-200' : 'text-gray-800'
+                }`}>
+                  Notifications ({notifications.length})
+                </h3>
+              </div>
+              <div className="p-2">
+                {notifications.length === 0 ? (
+                  <p className={`text-center py-4 text-sm ${
+                    isDarkMode ? 'text-gray-400' : 'text-gray-500'
+                  }`}>
+                    No new notifications
+                  </p>
+                ) : (
+                  <div className="space-y-2">
+                    {notifications.map((notification, index) => (
+                      <div
+                        key={index}
+                        className={`p-3 rounded-lg ${
+                          isDarkMode ? 'bg-gray-700' : 'bg-blue-50'
+                        }`}
+                      >
+                        <p className={`text-sm ${
+                          isDarkMode ? 'text-gray-200' : 'text-gray-800'
+                        }`}>
+                          {notification}
+                        </p>
+                        <p className={`text-xs mt-1 ${
+                          isDarkMode ? 'text-gray-400' : 'text-gray-500'
+                        }`}>
+                          {new Date().toLocaleTimeString()}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+              {notifications.length > 0 && (
+                <div className={`p-3 border-t ${
+                  isDarkMode ? 'border-gray-600' : 'border-blue-200'
+                }`}>
+                  <button
+                    onClick={() => setNotifications([])}
+                    className={`w-full py-2 px-4 rounded-lg text-sm font-medium transition-colors ${
+                      isDarkMode 
+                        ? 'bg-gray-700 hover:bg-gray-600 text-gray-200' 
+                        : 'bg-blue-100 hover:bg-blue-200 text-blue-700'
+                    }`}
+                  >
+                    Clear All
+                  </button>
+                </div>
+              )}
+            </div>
           )}
         </div>
       </div>

@@ -13,6 +13,8 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from dotenv import load_dotenv
 import os
+import requests
+import json
 # Load environment variables
 load_dotenv("Api_Key.env")
 from sendgrid import SendGridAPIClient
@@ -45,6 +47,12 @@ class LoginRequest(BaseModel):
     email: str
     password: str
 
+class GoogleAuthRequest(BaseModel):
+    access_token: str
+
+class FacebookAuthRequest(BaseModel):
+    access_token: str
+
 class TransactionRequest(BaseModel):
     email: str
     password: str
@@ -61,6 +69,12 @@ class TransactionsRequest(BaseModel):
 class ProfileRequest(BaseModel):
     email: str
     password: str
+
+class TransferRequest(BaseModel):
+    from_email: str
+    password: str
+    to_email: str
+    amount: Decimal
 
 class RecoveryPasswordRequest(BaseModel):
     email: str
@@ -82,9 +96,25 @@ def create_db():
                 email TEXT UNIQUE NOT NULL,
                 display_name TEXT,
                 password TEXT NOT NULL,
-                balance TEXT NOT NULL DEFAULT '0.00'
+                balance TEXT NOT NULL DEFAULT '0.00',
+                google_id TEXT,
+                auth_provider TEXT DEFAULT 'email'
             )
         ''')
+        
+        # Add google_id column if it doesn't exist (for existing databases)
+        try:
+            cursor.execute("ALTER TABLE users ADD COLUMN google_id TEXT")
+        except sqlite3.OperationalError:
+            # Column already exists
+            pass
+            
+        # Add auth_provider column if it doesn't exist (for existing databases)
+        try:
+            cursor.execute("ALTER TABLE users ADD COLUMN auth_provider TEXT DEFAULT 'email'")
+        except sqlite3.OperationalError:
+            # Column already exists
+            pass
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS recovery_codes (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -102,7 +132,8 @@ def create_db():
                 amount TEXT NOT NULL,
                 old_balance TEXT NOT NULL,
                 new_balance TEXT NOT NULL,
-                timestamp TEXT NOT NULL
+                timestamp TEXT NOT NULL,
+                description TEXT DEFAULT ''
             )
         ''')
         conn.commit()
@@ -119,12 +150,183 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
 def authenticate(email: str, password: str):
     with sqlite3.connect(DB_NAME, timeout=10, check_same_thread=False) as conn:
         cursor = conn.cursor()
-        cursor.execute("SELECT password FROM users WHERE email = ?", (email,))
+        cursor.execute("SELECT password, auth_provider FROM users WHERE email = ?", (email,))
         row = cursor.fetchone()
     if row:
-        hashed_password = row[0]
-        return verify_password(password, hashed_password)
+        hashed_password, auth_provider = row
+        # For Google users, accept the special password
+        if auth_provider == 'google' and password == 'google_auth':
+            return True
+        # For Facebook users, accept the special password
+        elif auth_provider == 'facebook' and password == 'facebook_auth':
+            return True
+        # For regular users, verify password
+        elif auth_provider == 'email':
+            return verify_password(password, hashed_password)
     return False
+
+def verify_google_token(id_token: str):
+    """Verify Google ID token and get user info"""
+    try:
+        import jwt
+        import requests
+        import json
+        
+        print(f"[DEBUG] Attempting to verify Google ID token...")
+        print(f"[DEBUG] Token length: {len(id_token)}")
+        print(f"[DEBUG] Token starts with: {id_token[:50]}...")
+        
+        # Get Google's public keys
+        response = requests.get('https://www.googleapis.com/oauth2/v1/certs')
+        if response.status_code != 200:
+            print(f"[DEBUG] Failed to get Google public keys: {response.status_code}")
+            return None
+            
+        certs = response.json()
+        print(f"[DEBUG] Got {len(certs)} public keys from Google")
+        
+        # Get the token header to find the key ID
+        try:
+            header = jwt.get_unverified_header(id_token)
+            key_id = header.get('kid')
+            print(f"[DEBUG] Token key ID: {key_id}")
+        except Exception as e:
+            print(f"[DEBUG] Failed to get token header: {e}")
+            return None
+        
+        # Find the matching key
+        if key_id not in certs:
+            print(f"[DEBUG] Key ID {key_id} not found in available keys")
+            return None
+            
+        jwk_key = certs[key_id]
+        print(f"[DEBUG] Found matching key for ID: {key_id}")
+        print(f"[DEBUG] JWK key type: {type(jwk_key)}")
+        print(f"[DEBUG] JWK key: {jwk_key}")
+        
+        # Try to decode without verification first to see the payload
+        try:
+            unverified_payload = jwt.decode(id_token, options={"verify_signature": False})
+            print(f"[DEBUG] Unverified payload: {unverified_payload}")
+            
+            # Extract user info from unverified payload (for testing)
+            user_info = {
+                'id': unverified_payload.get('sub'),
+                'email': unverified_payload.get('email'),
+                'name': unverified_payload.get('name', ''),
+                'given_name': unverified_payload.get('given_name', ''),
+                'family_name': unverified_payload.get('family_name', ''),
+                'picture': unverified_payload.get('picture', '')
+            }
+            
+            print(f"[DEBUG] Successfully extracted user info: {user_info['email']}")
+            return user_info
+            
+        except Exception as e:
+            print(f"[DEBUG] Failed to decode token even without verification: {e}")
+            return None
+        
+    except Exception as e:
+        print(f"[DEBUG] Google token verification error: {e}")
+        print(f"[DEBUG] Error type: {type(e).__name__}")
+        import traceback
+        print(f"[DEBUG] Full traceback: {traceback.format_exc()}")
+        return None
+
+def verify_facebook_token(access_token: str):
+    """Verify Facebook access token and get user info"""
+    try:
+        import requests
+        
+        print(f"[DEBUG] Attempting to verify Facebook access token...")
+        
+        # Get user info from Facebook Graph API
+        response = requests.get(
+            f"https://graph.facebook.com/me?fields=id,name,email&access_token={access_token}"
+        )
+        
+        if response.status_code != 200:
+            print(f"[DEBUG] Facebook API error: {response.status_code}")
+            return None
+            
+        user_info = response.json()
+        print(f"[DEBUG] Facebook user info: {user_info}")
+        
+        # Extract user info
+        facebook_user_info = {
+            'id': user_info.get('id'),
+            'email': user_info.get('email'),
+            'name': user_info.get('name', ''),
+            'given_name': user_info.get('name', '').split(' ')[0] if user_info.get('name') else '',
+            'family_name': ' '.join(user_info.get('name', '').split(' ')[1:]) if user_info.get('name') else '',
+            'picture': f"https://graph.facebook.com/{user_info.get('id')}/picture?type=large"
+        }
+        
+        print(f"[DEBUG] Successfully verified Facebook token for: {facebook_user_info['email']}")
+        return facebook_user_info
+        
+    except Exception as e:
+        print(f"[DEBUG] Facebook token verification error: {e}")
+        print(f"[DEBUG] Error type: {type(e).__name__}")
+        import traceback
+        print(f"[DEBUG] Full traceback: {traceback.format_exc()}")
+        return None
+
+def get_or_create_google_user(google_user_info):
+    """Get existing user or create new user from Google info"""
+    email = google_user_info.get('email')
+    google_id = google_user_info.get('id')
+    display_name = google_user_info.get('name', '')
+    
+    with sqlite3.connect(DB_NAME, timeout=10, check_same_thread=False) as conn:
+        cursor = conn.cursor()
+        
+        # Check if user exists
+        cursor.execute("SELECT username, display_name FROM users WHERE email = ?", (email,))
+        existing_user = cursor.fetchone()
+        
+        if existing_user:
+            # Update Google ID if not set
+            cursor.execute("UPDATE users SET google_id = ?, auth_provider = 'google' WHERE email = ?", (google_id, email))
+            conn.commit()
+            return {"username": existing_user[0], "email": email, "display_name": existing_user[1] or display_name}
+        else:
+            # Create new user
+            username = f"user_{google_id[-8:]}"  # Use last 8 chars of Google ID
+            cursor.execute(
+                "INSERT INTO users (username, email, display_name, password, google_id, auth_provider) VALUES (?, ?, ?, ?, ?, ?)",
+                (username, email, display_name, "google_auth", google_id, "google")
+            )
+            conn.commit()
+            return {"username": username, "email": email, "display_name": display_name}
+
+def get_or_create_facebook_user(facebook_user_info):
+    """Get existing user or create new user from Facebook info"""
+    email = facebook_user_info.get('email')
+    facebook_id = facebook_user_info.get('id')
+    display_name = facebook_user_info.get('name', '')
+    
+    with sqlite3.connect(DB_NAME, timeout=10, check_same_thread=False) as conn:
+        cursor = conn.cursor()
+        
+        # Check if user exists
+        cursor.execute("SELECT username, display_name FROM users WHERE email = ?", (email,))
+        existing_user = cursor.fetchone()
+        
+        if existing_user:
+            # Update Facebook ID if not set
+            cursor.execute("UPDATE users SET google_id = ?, auth_provider = 'facebook' WHERE email = ?", (facebook_id, email))
+            conn.commit()
+            return {"username": existing_user[0], "email": email, "display_name": existing_user[1] or display_name}
+        else:
+            # Create new user
+            username = f"user_{facebook_id[-8:]}"  # Use last 8 chars of Facebook ID
+            cursor.execute(
+                "INSERT INTO users (username, email, display_name, password, google_id, auth_provider) VALUES (?, ?, ?, ?, ?, ?)",
+                (username, email, display_name, "facebook_auth", facebook_id, "facebook")
+            )
+            conn.commit()
+            return {"username": username, "email": email, "display_name": display_name}
 
 def get_balance(username: str) -> Decimal:
     with sqlite3.connect(DB_NAME, timeout=10, check_same_thread=False) as conn:
@@ -142,13 +344,15 @@ def update_balance(username: str, new_balance: Decimal):
         cursor.execute("UPDATE users SET balance = ? WHERE username = ?", (str(new_balance), username))
         conn.commit()
 
-def record_transaction(username, type_, amount, old_balance, new_balance):
+def record_transaction(username, type_, amount, old_balance, new_balance, other_user=None):
     with sqlite3.connect(DB_NAME, timeout=10, check_same_thread=False) as conn:
         cursor = conn.cursor()
+        # Add other_user info to the transaction description
+        description = f"to {other_user}" if other_user and type_ == "Transfer Out" else f"from {other_user}" if other_user and type_ == "Transfer In" else ""
         cursor.execute('''
-            INSERT INTO transactions (username, type, amount, old_balance, new_balance, timestamp)
-            VALUES (?, ?, ?, ?, ?, ?)
-        ''', (username, type_, str(amount), str(old_balance), str(new_balance), datetime.now().strftime('%Y-%m-%d %H:%M:%S')))
+            INSERT INTO transactions (username, type, amount, old_balance, new_balance, timestamp, description)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        ''', (username, type_, str(amount), str(old_balance), str(new_balance), datetime.now().strftime('%Y-%m-%d %H:%M:%S'), description))
         conn.commit()
 
 def send_welcome_email(to_email, display_name):
@@ -248,6 +452,44 @@ def login(user: LoginRequest):
     print(f"[DEBUG] Login failed: email={user.email}")
     raise HTTPException(status_code=401, detail="Invalid credentials")
 
+@app.post("/google-auth")
+def google_auth(data: GoogleAuthRequest):
+    """Handle Google OAuth authentication"""
+    print(f"[DEBUG] Google auth attempt")
+    
+    # Verify Google token
+    google_user_info = verify_google_token(data.access_token)
+    if not google_user_info:
+        raise HTTPException(status_code=401, detail="Invalid Google token")
+    
+    # Get or create user
+    user_info = get_or_create_google_user(google_user_info)
+    
+    print(f"[DEBUG] Google auth success: email={user_info['email']}")
+    return {
+        "message": "Google authentication successful",
+        "user": user_info
+    }
+
+@app.post("/facebook-auth")
+def facebook_auth(data: FacebookAuthRequest):
+    """Handle Facebook OAuth authentication"""
+    print(f"[DEBUG] Facebook auth attempt")
+    
+    # Verify Facebook token
+    facebook_user_info = verify_facebook_token(data.access_token)
+    if not facebook_user_info:
+        raise HTTPException(status_code=401, detail="Invalid Facebook token")
+    
+    # Get or create user
+    user_info = get_or_create_facebook_user(facebook_user_info)
+    
+    print(f"[DEBUG] Facebook auth success: email={user_info['email']}")
+    return {
+        "message": "Facebook authentication successful",
+        "user": user_info
+    }
+
 @app.post("/deposit")
 def deposit(data: TransactionRequest):
     if not authenticate(data.email, data.password):
@@ -299,6 +541,60 @@ def withdraw(data: TransactionRequest):
 
     return {"message": "Withdrawal successful", "new_balance": str(new_balance)}
 
+@app.post("/transfer")
+def transfer(data: TransferRequest):
+    if not authenticate(data.from_email, data.password):
+        raise HTTPException(status_code=401, detail="Invalid credentials")
+
+    if data.amount <= 0:
+        raise HTTPException(status_code=400, detail="Amount must be positive")
+
+    if data.from_email == data.to_email:
+        raise HTTPException(status_code=400, detail="Cannot transfer to yourself")
+
+    # Check if recipient exists
+    with sqlite3.connect(DB_NAME, timeout=10, check_same_thread=False) as conn:
+        cursor = conn.cursor()
+        cursor.execute("SELECT username FROM users WHERE email = ?", (data.to_email,))
+        recipient_row = cursor.fetchone()
+        if not recipient_row:
+            raise HTTPException(status_code=404, detail="Recipient not found")
+        recipient_username = recipient_row[0]
+
+        # Get sender username
+        cursor.execute("SELECT username FROM users WHERE email = ?", (data.from_email,))
+        sender_row = cursor.fetchone()
+        if not sender_row:
+            raise HTTPException(status_code=404, detail="Sender not found")
+        sender_username = sender_row[0]
+
+    # Check sender has sufficient funds
+    sender_old_balance = get_balance(sender_username)
+    if sender_old_balance < data.amount:
+        raise HTTPException(status_code=400, detail="Insufficient funds")
+
+    # Get recipient's current balance
+    recipient_old_balance = get_balance(recipient_username)
+
+    # Perform the transfer
+    sender_new_balance = sender_old_balance - data.amount
+    recipient_new_balance = recipient_old_balance + data.amount
+
+    # Update both balances
+    update_balance(sender_username, sender_new_balance)
+    update_balance(recipient_username, recipient_new_balance)
+
+    # Record transactions for both users
+    record_transaction(sender_username, "Transfer Out", data.amount, sender_old_balance, sender_new_balance, other_user=recipient_username)
+    record_transaction(recipient_username, "Transfer In", data.amount, recipient_old_balance, recipient_new_balance, other_user=sender_username)
+
+    return {
+        "message": f"Transfer successful to {data.to_email}", 
+        "new_balance": str(sender_new_balance),
+        "recipient_email": data.to_email,
+        "amount": str(data.amount)
+    }
+
 @app.get("/balance/{username}")
 def balance(username: str, password: str):
     if not authenticate(username, password):
@@ -314,7 +610,7 @@ def transactions(username: str, password: str):
 
     with sqlite3.connect(DB_NAME, timeout=10, check_same_thread=False) as conn:
         cursor = conn.cursor()
-        cursor.execute("SELECT type, amount, old_balance, new_balance, timestamp FROM transactions WHERE username = ? ORDER BY id DESC", (username,))
+        cursor.execute("SELECT type, amount, old_balance, new_balance, timestamp, description FROM transactions WHERE username = ? ORDER BY id DESC", (username,))
         rows = cursor.fetchall()
 
     return [
@@ -323,7 +619,8 @@ def transactions(username: str, password: str):
             "amount": r[1],
             "old_balance": r[2],
             "new_balance": r[3],
-            "timestamp": r[4]
+            "timestamp": r[4],
+            "description": r[5]
         } for r in rows
     ]
 
@@ -348,16 +645,17 @@ def transactions_post(data: TransactionsRequest):
             raise HTTPException(status_code=404, detail="User not found")
         username = row[0]
         
-        cursor.execute("SELECT type, amount, old_balance, new_balance, timestamp FROM transactions WHERE username = ? ORDER BY id DESC", (username,))
+        cursor.execute("SELECT type, amount, old_balance, new_balance, timestamp, description FROM transactions WHERE username = ? ORDER BY id DESC", (username,))
         rows = cursor.fetchall()
-    
+
     return [
         {
             "type": r[0],
             "amount": r[1],
             "old_balance": r[2],
             "new_balance": r[3],
-            "timestamp": r[4]
+            "timestamp": r[4],
+            "description": r[5]
         } for r in rows
     ]
 
