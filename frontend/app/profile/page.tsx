@@ -75,7 +75,7 @@ export default function ProfilePage() {
       // Dark mode is now handled by the context
       
       // Fetch profile from backend
-      fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/profile`, {
+              fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/profile`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: storedEmail, password: storedPass }),

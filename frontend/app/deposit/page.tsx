@@ -26,7 +26,7 @@ export default function DepositPage() {
     e.preventDefault();
     setMessage("");
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/deposit`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/deposit`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password, amount: parseFloat(amount) }),

@@ -135,7 +135,7 @@ export default function LoginPage() {
     try {
       setMessage("🔄 Authenticating with Google...");
       
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/google-auth`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/google-auth`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ access_token: response.credential }),
@@ -187,7 +187,7 @@ export default function LoginPage() {
     try {
       setMessage("🔄 Authenticating with Facebook...");
       
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/facebook-auth`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/facebook-auth`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ access_token: accessToken }),
@@ -217,7 +217,7 @@ export default function LoginPage() {
     e.preventDefault();
     setMessage("");
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/login`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
@@ -242,7 +242,7 @@ export default function LoginPage() {
     e.preventDefault();
     setMessage("");
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/generate-recovery-code`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/generate-recovery-code`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: recoveryEmail }),
@@ -262,7 +262,7 @@ export default function LoginPage() {
     e.preventDefault();
     setMessage("");
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/reset-password`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/reset-password`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ 
