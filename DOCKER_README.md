@@ -6,10 +6,10 @@ A full-stack banking application built with Next.js frontend and FastAPI backend
 
 ```bash
 # Run with Docker
-docker run -d -p 80:80 --name bluebank chenhexu/bluebank:latest
+docker run -d -p 8080:80 --name bluebank chenhexu/bluebank:latest
 
 # Access the application
-open http://localhost
+open http://localhost:8080
 ```
 
 ## Features
@@ -53,8 +53,8 @@ FACEBOOK_APP_SECRET=your-facebook-app-secret
 
 ## Access Points
 
-- **Frontend**: `http://localhost` (port 80)
-- **Backend API**: `http://localhost/api/` (proxied through Nginx)
+- **Frontend**: `http://localhost:8080` (port 8080)
+- **Backend API**: `http://localhost:8080/api/` (proxied through Nginx)
 
 ## License
 

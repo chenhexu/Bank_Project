@@ -7,10 +7,10 @@ A full-stack banking application built with FastAPI, Next.js, and Docker. Featur
 ### Option 1: Docker Hub (Recommended)
 ```bash
 # Run directly from Docker Hub
-docker run -d -p 80:80 --name bluebank chenhexu/bluebank:latest
+docker run -d -p 8080:80 --name bluebank chenhexu/bluebank:latest
 
 # Access the application
-open http://localhost
+open http://localhost:8080
 ```
 
 ### Option 2: Different Port (if port 80 is busy)
@@ -28,17 +28,17 @@ open http://localhost:8080
 docker start bluebank
 
 # Access the application
-open http://localhost
+open http://localhost:8080
 ```
 
 ### Option 4: Remove and Recreate Container
 ```bash
 # Remove old container and create fresh one
 docker rm -f bluebank
-docker run -d -p 80:80 --name bluebank chenhexu/bluebank:latest
+docker run -d -p 8080:80 --name bluebank chenhexu/bluebank:latest
 
 # Access the application
-open http://localhost
+open http://localhost:8080
 ```
 
 ### Option 5: Local Development
@@ -66,8 +66,8 @@ npm start
 ```
 
 ### Access the Application
-- **Frontend**: http://localhost:3000 (local) or http://localhost (Docker Hub)
-- **Backend API**: http://localhost:8000 (local) or http://localhost/api/ (Docker Hub)
+- **Frontend**: http://localhost:3000 (local) or http://localhost:8080 (Docker Hub)
+- **Backend API**: http://localhost:8000 (local) or http://localhost:8080/api/ (Docker Hub)
 - **API Documentation**: http://localhost:8000/docs
 
 ### Useful Commands
@@ -135,9 +135,9 @@ docker ps -a
 docker pull chenhexu/bluebank:latest
 
 # Run the application
-docker run -d -p 80:80 --name bluebank chenhexu/bluebank:latest
+docker run -d -p 8080:80 --name bluebank chenhexu/bluebank:latest
 
-# Access at http://localhost
+# Access at http://localhost:8080
 ```
 
 ### Multi-Container Development
