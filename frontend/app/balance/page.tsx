@@ -61,7 +61,11 @@ export default function BalancePage() {
 
   useEffect(() => {
     if (typeof window !== "undefined") {
-      const lastBalance = sessionStorage.getItem("lastBalance");
+      // Get current user's email for user-specific balance storage
+      const currentUserEmail = sessionStorage.getItem('email');
+      const balanceKey = currentUserEmail ? `lastBalance_${currentUserEmail}` : 'lastBalance';
+      
+      const lastBalance = sessionStorage.getItem(balanceKey);
       const initial = lastBalance !== null ? parseFloat(lastBalance) : 0;
       setAnimationFrom(initial);
       setBalance(initial);
@@ -108,7 +112,10 @@ export default function BalancePage() {
         const newBalance = parseFloat(data.balance);
 
         if (typeof window !== "undefined") {
-          sessionStorage.setItem("lastBalance", newBalance.toString());
+          // Get current user's email for user-specific balance storage
+          const currentUserEmail = sessionStorage.getItem('email');
+          const balanceKey = currentUserEmail ? `lastBalance_${currentUserEmail}` : 'lastBalance';
+          sessionStorage.setItem(balanceKey, newBalance.toString());
         }
 
         setTimeout(() => {

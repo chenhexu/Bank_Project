@@ -14,28 +14,82 @@ export function DarkModeProvider({ children }: { children: React.ReactNode }) {
   const [isLoaded, setIsLoaded] = useState(false);
 
   useEffect(() => {
-    // Load dark mode preference from sessionStorage
-    if (typeof window !== "undefined") {
-      const storedDarkMode = sessionStorage.getItem('darkMode') === 'true';
-      setIsDarkMode(storedDarkMode);
-      
-      // Apply dark mode to document immediately
-      if (storedDarkMode) {
-        document.documentElement.classList.add('dark');
-      } else {
-        document.documentElement.classList.remove('dark');
+    // Function to load dark mode preference
+    const loadDarkModePreference = () => {
+      if (typeof window !== "undefined") {
+        // Get current user's email for user-specific storage
+        const currentUserEmail = sessionStorage.getItem('email');
+        const darkModeKey = currentUserEmail ? `darkMode_${currentUserEmail}` : 'darkMode';
+        
+        const storedDarkMode = sessionStorage.getItem(darkModeKey);
+        let isDarkMode = false;
+        
+        if (storedDarkMode !== null) {
+          // Use stored preference if available
+          isDarkMode = storedDarkMode === 'true';
+        } else {
+          // Use system preference if no stored preference
+          isDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        }
+        
+        setIsDarkMode(isDarkMode);
+        
+        // Apply dark mode to document immediately
+        if (isDarkMode) {
+          document.documentElement.classList.add('dark');
+        } else {
+          document.documentElement.classList.remove('dark');
+        }
       }
+    };
+
+    // Load initial preference
+    loadDarkModePreference();
+    
+    // Listen for storage changes (when user logs in/out)
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'email') {
+        loadDarkModePreference();
+      }
+    };
+    
+    // Listen for system dark mode changes
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    const handleSystemChange = (e: MediaQueryListEvent) => {
+      const currentUserEmail = sessionStorage.getItem('email');
+      const darkModeKey = currentUserEmail ? `darkMode_${currentUserEmail}` : 'darkMode';
       
-      setIsLoaded(true);
-    }
+      if (sessionStorage.getItem(darkModeKey) === null) {
+        // Only auto-update if user hasn't manually set a preference
+        setIsDarkMode(e.matches);
+        if (e.matches) {
+          document.documentElement.classList.add('dark');
+        } else {
+          document.documentElement.classList.remove('dark');
+        }
+      }
+    };
+    
+    window.addEventListener('storage', handleStorageChange);
+    mediaQuery.addEventListener('change', handleSystemChange);
+    setIsLoaded(true);
+    
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      mediaQuery.removeEventListener('change', handleSystemChange);
+    };
   }, []);
 
   const toggleDarkMode = () => {
     const newDarkMode = !isDarkMode;
     setIsDarkMode(newDarkMode);
     
-    // Save to sessionStorage
-    sessionStorage.setItem('darkMode', newDarkMode.toString());
+    // Get current user's email for user-specific storage
+    const currentUserEmail = sessionStorage.getItem('email');
+    const darkModeKey = currentUserEmail ? `darkMode_${currentUserEmail}` : 'darkMode';
+    
+    // Save to sessionStorage with user-specific key
+    sessionStorage.setItem(darkModeKey, newDarkMode.toString());
     
     // Apply dark mode to the document
     if (newDarkMode) {
