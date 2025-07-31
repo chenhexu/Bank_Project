@@ -12,6 +12,7 @@ declare global {
         id: {
           initialize: (config: any) => void;
           renderButton: (element: HTMLElement, options: any) => void;
+          prompt: () => void;
         };
       };
     };
@@ -53,13 +54,21 @@ export default function LoginPage() {
             callback: handleGoogleCredentialResponse
           });
           
-          const buttonElement = document.getElementById('google-login-button');
-          if (buttonElement) {
-            window.google.accounts.id.renderButton(
-              buttonElement,
-              { theme: 'outline', size: 'large', width: '100%', type: 'standard' }
-            );
-          }
+          // Don't let Google SDK override our custom button
+          // const buttonElement = document.getElementById('google-login-button');
+          // if (buttonElement) {
+          //   window.google.accounts.id.renderButton(
+          //     buttonElement,
+          //     { 
+          //       theme: 'outline', 
+          //       size: 'large', 
+          //       width: '100%', 
+          //       type: 'standard',
+          //       text: 'signin_with',
+          //       shape: 'rectangular'
+          //     }
+          //   );
+          // }
         } catch (error) {
           console.error('Google OAuth initialization error:', error);
         }
@@ -122,20 +131,14 @@ export default function LoginPage() {
   }, []);
 
   const handleGoogleLogin = () => {
-    // Trigger Google login using the existing credential response
-    if (window.google && window.google.accounts && window.google.accounts.id) {
-      // The Google SDK will automatically handle the login when the button is clicked
-      // The handleGoogleCredentialResponse will be called automatically
-    } else {
-      setMessage("❌ Google SDK not loaded. Please refresh the page.");
-    }
+    setMessage("🔄 Google OAuth is temporarily disabled due to CORS issues. Please use Facebook login or email/password registration.");
   };
 
   const handleGoogleCredentialResponse = async (response: any) => {
     try {
       setMessage("🔄 Authenticating with Google...");
       
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/google-auth`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/google-auth`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ access_token: response.credential }),
@@ -187,7 +190,7 @@ export default function LoginPage() {
     try {
       setMessage("🔄 Authenticating with Facebook...");
       
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/facebook-auth`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/facebook-auth`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ access_token: accessToken }),
@@ -217,7 +220,7 @@ export default function LoginPage() {
     e.preventDefault();
     setMessage("");
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/login`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
@@ -242,7 +245,7 @@ export default function LoginPage() {
     e.preventDefault();
     setMessage("");
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/generate-recovery-code`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/generate-recovery-code`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: recoveryEmail }),
@@ -262,7 +265,7 @@ export default function LoginPage() {
     e.preventDefault();
     setMessage("");
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/reset-password`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/reset-password`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ 
@@ -304,12 +307,13 @@ export default function LoginPage() {
         </div>
         
         {/* Google Login Button */}
-        <div className="w-full mb-3">
+        <div className="w-full mb-6">
           <button
+            id="google-login-button"
             onClick={handleGoogleLogin}
             className="w-full h-12 pl-3 pr-6 rounded-xl border border-gray-300 bg-white hover:bg-gray-50 text-gray-700 font-normal text-sm shadow transition flex items-center justify-start gap-3"
           >
-            <svg className="w-5 h-5" viewBox="0 0 24 24">
+            <svg className="w-5 h-5 flex-shrink-0" viewBox="0 0 24 24" style={{ marginTop: '1px' }}>
               <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
               <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
               <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
@@ -322,6 +326,7 @@ export default function LoginPage() {
         {/* Facebook Login Button */}
         <div className="w-full mb-6">
           <button
+            id="fb-login-button"
             onClick={handleFacebookLogin}
             className="w-full h-12 pl-3 pr-6 rounded-xl border border-gray-300 bg-white hover:bg-gray-50 text-gray-700 font-normal text-sm shadow transition flex items-center justify-start gap-3"
           >

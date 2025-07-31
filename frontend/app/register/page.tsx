@@ -15,6 +15,7 @@ declare global {
         id: {
           initialize: (config: any) => void;
           renderButton: (element: HTMLElement, options: any) => void;
+          prompt: () => void;
         };
       };
     };
@@ -130,7 +131,7 @@ export default function RegisterPage() {
     try {
       setMessage("🔄 Creating account with Google...");
       
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/google-auth`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/google-auth`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ access_token: response.credential }),
@@ -199,7 +200,7 @@ export default function RegisterPage() {
     try {
       setMessage("🔄 Authenticating with Facebook...");
       
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/facebook-auth`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/facebook-auth`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ access_token: accessToken }),
@@ -229,7 +230,7 @@ export default function RegisterPage() {
     e.preventDefault();
     setMessage("");
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/register`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -245,7 +246,7 @@ export default function RegisterPage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.detail || "Register failed");
       // Auto-login after successful registration
-      const loginRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/login`, {
+              const loginRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),

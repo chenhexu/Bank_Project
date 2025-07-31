@@ -26,7 +26,7 @@ export default function WithdrawPage() {
     e.preventDefault();
     setMessage("");
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/withdraw`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/withdraw`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password, amount: parseFloat(amount) }),
