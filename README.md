@@ -13,7 +13,35 @@ docker run -d -p 80:80 --name bluebank chenhexu/bluebank:latest
 open http://localhost
 ```
 
-### Option 2: Local Development
+### Option 2: Different Port (if port 80 is busy)
+```bash
+# Run on port 8080
+docker run -d -p 8080:80 --name bluebank chenhexu/bluebank:latest
+
+# Access the application
+open http://localhost:8080
+```
+
+### Option 3: Start Existing Container
+```bash
+# If container already exists but is stopped
+docker start bluebank
+
+# Access the application
+open http://localhost
+```
+
+### Option 4: Remove and Recreate Container
+```bash
+# Remove old container and create fresh one
+docker rm -f bluebank
+docker run -d -p 80:80 --name bluebank chenhexu/bluebank:latest
+
+# Access the application
+open http://localhost
+```
+
+### Option 5: Local Development
 ```bash
 # 1. Clone the repository
 git clone https://github.com/chenhexu/Bank_Project.git
@@ -31,10 +59,34 @@ chmod +x scripts/start.sh
 npm start
 ```
 
+### Option 6: Using npm Scripts
+```bash
+# If you have the project locally
+npm start
+```
+
 ### Access the Application
 - **Frontend**: http://localhost:3000 (local) or http://localhost (Docker Hub)
 - **Backend API**: http://localhost:8000 (local) or http://localhost/api/ (Docker Hub)
 - **API Documentation**: http://localhost:8000/docs
+
+### Useful Commands
+```bash
+# Check if container is running
+docker ps
+
+# View application logs
+docker logs bluebank
+
+# Stop the application
+docker stop bluebank
+
+# Remove container completely
+docker rm -f bluebank
+
+# Check all containers (including stopped)
+docker ps -a
+```
 
 ### First Time Setup
 1. Open the application URL

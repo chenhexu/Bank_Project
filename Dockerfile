@@ -20,8 +20,8 @@ COPY backend/ ./
 # Final stage
 FROM python:3.11-slim
 
-# Install nginx and backend dependencies
-RUN apt-get update && apt-get install -y nginx && \
+# Install nginx, nodejs, and backend dependencies
+RUN apt-get update && apt-get install -y nginx nodejs npm && \
     pip install uvicorn
 
 # Copy backend requirements and install dependencies
