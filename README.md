@@ -11,22 +11,31 @@ A full-stack banking application built with FastAPI, Next.js, and Docker. Featur
 ### One-Command Setup
 
 ```bash
-# Clone the repository
-git clone <repository-url>
-cd Bank_Project
+# 1. Clone the repository
+git clone https://github.com/yourusername/bluebank.git
+cd bluebank
 
-# Start the application (Windows)
+# 2. Start the application
+# Windows:
 scripts/start.bat
 
-# Start the application (Linux/Mac)
+# Linux/Mac:
 chmod +x scripts/start.sh
 ./scripts/start.sh
+
+# Or using npm:
+npm start
 ```
 
 ### Access the Application
-- **Frontend**: http://localhost:3000
-- **Backend API**: http://localhost:8000
-- **API Documentation**: http://localhost:8000/docs
+- 🌐 **Frontend**: http://localhost:3000
+- 🔧 **Backend API**: http://localhost:8000
+- 📚 **API Documentation**: http://localhost:8000/docs
+
+### First Time Setup
+1. Open http://localhost:3000
+2. Click "Sign up" to create your first account
+3. Start using the banking features!
 
 ## 📋 Features
 

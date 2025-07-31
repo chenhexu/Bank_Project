@@ -8,8 +8,8 @@
 
 ### Step 1: Clone the Repository
 ```bash
-git clone <your-repository-url>
-cd Bank_Project
+git clone https://github.com/yourusername/bluebank.git
+cd bluebank
 ```
 
 ### Step 2: Start the Application
