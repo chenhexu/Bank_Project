@@ -1,4 +1,4 @@
-# 🏦 BlueBank - Modern Banking Application
+# BlueBank - Modern Banking Application
 
 A full-stack banking application built with FastAPI, Next.js, and Docker. Features include user authentication, banking operations, OAuth integration, and a modern responsive UI.
 
@@ -32,25 +32,25 @@ npm start
 ```
 
 ### Access the Application
-- 🌐 **Frontend**: http://localhost:3000 (local) or http://localhost (Docker Hub)
-- 🔧 **Backend API**: http://localhost:8000 (local) or http://localhost/api/ (Docker Hub)
-- 📚 **API Documentation**: http://localhost:8000/docs
+- **Frontend**: http://localhost:3000 (local) or http://localhost (Docker Hub)
+- **Backend API**: http://localhost:8000 (local) or http://localhost/api/ (Docker Hub)
+- **API Documentation**: http://localhost:8000/docs
 
 ### First Time Setup
 1. Open the application URL
 2. Click "Sign up" to create your first account
 3. Start using the banking features!
 
-## 📋 Features
+## Features
 
-### 🔐 Authentication
+### Authentication
 - Email/password registration and login
 - Google OAuth integration
 - Facebook OAuth integration
 - Password recovery via email
 - Session management
 
-### 💰 Banking Operations
+### Banking Operations
 - Real-time balance display with animated counter
 - Deposit funds
 - Withdraw funds (with insufficient funds protection)
@@ -58,7 +58,7 @@ npm start
 - Complete transaction history
 - Real-time notifications with sender/recipient info
 
-### 🎨 User Experience
+### User Experience
 - Modern responsive design with Tailwind CSS
 - Dark mode support with persistence
 - Animated balance transitions
@@ -66,7 +66,7 @@ npm start
 - Real-time updates
 - Notification system for transfers
 
-### 🔧 Technical Features
+### Technical Features
 - FastAPI backend with automatic API documentation
 - Next.js frontend with TypeScript
 - SQLite database with Docker volume persistence
@@ -75,7 +75,7 @@ npm start
 - Hot reloading for development
 - Single Docker image deployment
 
-## 🐳 Docker Deployment
+## Docker Deployment
 
 ### Single Image (Production Ready)
 ```bash
@@ -100,7 +100,7 @@ docker-compose -f docker/docker-compose.dev.yml logs -f
 docker-compose -f docker/docker-compose.dev.yml down
 ```
 
-## 🛠️ Development Setup
+## Development Setup
 
 ### Option 1: Docker Development (Recommended)
 ```bash
@@ -127,7 +127,7 @@ npm install
 npm run dev
 ```
 
-## 🔧 Configuration
+## Configuration
 
 ### Environment Variables
 The application will automatically create a `.env` file on first run, but you can configure it manually:
@@ -154,7 +154,7 @@ FACEBOOK_APP_SECRET=your-facebook-app-secret
 DATABASE_URL=sqlite:///bank_users.db
 ```
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 Bank_Project/
@@ -185,7 +185,7 @@ Bank_Project/
 └── README.md              # This file
 ```
 
-## 🐳 Docker Commands
+## Docker Commands
 
 ### Production (Single Image)
 ```bash
@@ -212,7 +212,7 @@ docker-compose -f docker/docker-compose.dev.yml logs -f
 docker-compose -f docker/docker-compose.dev.yml down
 ```
 
-## 🔍 Troubleshooting
+## Troubleshooting
 
 ### Common Issues
 
@@ -259,7 +259,7 @@ docker logs bluebank-single
 curl http://localhost
 ```
 
-## 🚀 Deployment
+## Deployment
 
 ### Docker Hub Deployment
 ```bash
@@ -286,7 +286,7 @@ export GMAIL_EMAIL=your-production-email
 export GMAIL_APP_PASSWORD=your-production-app-password
 ```
 
-## 📊 API Endpoints
+## API Endpoints
 
 ### Authentication
 - `POST /register` - User registration
@@ -306,7 +306,7 @@ export GMAIL_APP_PASSWORD=your-production-app-password
 - `POST /generate-recovery-code` - Password recovery
 - `POST /reset-password` - Reset password
 
-## 🧪 Testing
+## Testing
 
 ### Manual Testing
 1. Register a new account
@@ -320,7 +320,7 @@ export GMAIL_APP_PASSWORD=your-production-app-password
 - Visit http://localhost:8000/docs for interactive API documentation
 - Use the built-in Swagger UI to test endpoints
 
-## 🤝 Contributing
+## Contributing
 
 1. Fork the repository
 2. Create a feature branch
@@ -328,11 +328,11 @@ export GMAIL_APP_PASSWORD=your-production-app-password
 4. Test thoroughly
 5. Submit a pull request
 
-## 📄 License
+## License
 
 This project is open source and available under the [MIT License](LICENSE).
 
-## 🆘 Support
+## Support
 
 If you encounter issues:
 
@@ -342,7 +342,7 @@ If you encounter issues:
 4. **Restart container**: `docker restart bluebank-single`
 5. **Clean rebuild**: `docker rm bluebank-single && docker run -d -p 80:80 --name bluebank-single bluebank:latest`
 
-## 🎉 Success!
+## Success!
 
 Once everything is running:
 - Register a new account
@@ -352,7 +352,7 @@ Once everything is running:
 - Check out the transaction history
 - Test the notification system
 
-Happy banking! 🏦
+Happy banking!
 
 ---
 

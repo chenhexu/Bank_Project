@@ -2,7 +2,7 @@
 
 A full-stack banking application built with Next.js frontend and FastAPI backend, containerized for easy deployment.
 
-## 🚀 Quick Start
+## Quick Start
 
 ```bash
 # Run with Docker
@@ -12,7 +12,7 @@ docker run -d -p 80:80 --name bluebank chenhexu/bluebank:latest
 open http://localhost
 ```
 
-## ✨ Features
+## Features
 
 - **User Authentication**: Sign up, log in, and profile management
 - **Third-Party Login**: Google and Facebook OAuth integration
@@ -25,7 +25,7 @@ open http://localhost
 - **Dark Mode**: Toggle between light and dark themes
 - **Responsive Design**: Works on desktop and mobile
 
-## 🛠️ Technology Stack
+## Technology Stack
 
 - **Frontend**: Next.js 14, React, Tailwind CSS
 - **Backend**: FastAPI, Python 3.11
@@ -33,14 +33,14 @@ open http://localhost
 - **Authentication**: Google OAuth, Facebook OAuth
 - **Container**: Docker with Nginx
 
-## 📱 Screenshots
+## Screenshots
 
 - Modern, responsive UI
 - Dark mode support
 - Real-time notifications
 - Mobile-friendly design
 
-## 🔧 Environment Variables
+## Environment Variables
 
 The application uses environment variables for configuration. Create a `.env` file in the backend directory:
 
@@ -51,15 +51,15 @@ FACEBOOK_APP_ID=your-facebook-app-id
 FACEBOOK_APP_SECRET=your-facebook-app-secret
 ```
 
-## 🌐 Access Points
+## Access Points
 
 - **Frontend**: `http://localhost` (port 80)
 - **Backend API**: `http://localhost/api/` (proxied through Nginx)
 
-## 📄 License
+## License
 
 This project is for educational purposes.
 
-## 🤝 Contributing
+## Contributing
 
 Feel free to submit issues and enhancement requests! 
