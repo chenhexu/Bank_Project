@@ -50,7 +50,7 @@ export default function WithdrawPage() {
           <div className="text-sm text-blue-500 font-medium mb-2">Take money out of your BlueBank account.</div>
         </div>
         <form className="flex flex-col gap-4 w-full mt-4" onSubmit={handleWithdraw}>
-          <input type="number" step="0.01" min="0.01" placeholder="Amount" value={amount} onChange={e => setAmount(e.target.value)} className="px-4 py-3 rounded-xl border border-blue-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-lg" />
+          <input type="number" step="0.01" min="0.01" placeholder="Amount" value={amount} onChange={e => setAmount(e.target.value)} className="px-4 py-3 rounded-xl border border-blue-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-lg text-gray-900 bg-white" />
           <button type="submit" className="w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-lg shadow transition mt-2">Withdraw</button>
         </form>
         {message && <div className="mt-4 text-center text-sm text-blue-500">{message}</div>}

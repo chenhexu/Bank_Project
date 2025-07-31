@@ -334,26 +334,26 @@ export default function RegisterPage() {
         
         <form className="flex flex-col gap-4 w-full mt-4" onSubmit={handleRegister}>
             <label className="text-xs font-bold text-gray-700">EMAIL <span className="text-red-500">*</span></label>
-            <input type="email" placeholder="" value={email} onChange={e => setEmail(e.target.value)} className="px-4 py-3 rounded-xl border-2 border-blue-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-lg hover:border-blue-300 hover:bg-blue-50" required />
+            <input type="email" placeholder="" value={email} onChange={e => setEmail(e.target.value)} className="px-4 py-3 rounded-xl border-2 border-blue-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-lg hover:border-blue-300 hover:bg-blue-50 text-gray-900 bg-white" required />
 
             <label className="text-xs font-bold text-gray-700">DISPLAY NAME <span className="text-red-500">*</span></label>
-            <input type="text" placeholder="" value={displayName} onChange={e => setDisplayName(e.target.value)} className="px-4 py-3 rounded-xl border-2 border-blue-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-lg hover:border-blue-300 hover:bg-blue-50" required />
+            <input type="text" placeholder="" value={displayName} onChange={e => setDisplayName(e.target.value)} className="px-4 py-3 rounded-xl border-2 border-blue-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-lg hover:border-blue-300 hover:bg-blue-50 text-gray-900 bg-white" required />
 
             <label className="text-xs font-bold text-gray-700">USERNAME <span className="text-red-500">*</span></label>
-            <input type="text" placeholder="" value={username} onChange={e => setUsername(e.target.value)} className="px-4 py-3 rounded-xl border-2 border-blue-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-lg hover:border-blue-300 hover:bg-blue-50" required />
+            <input type="text" placeholder="" value={username} onChange={e => setUsername(e.target.value)} className="px-4 py-3 rounded-xl border-2 border-blue-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-lg hover:border-blue-300 hover:bg-blue-50 text-gray-900 bg-white" required />
 
             <label className="text-xs font-bold text-gray-700">PASSWORD <span className="text-red-500">*</span></label>
-            <input type="password" placeholder="" value={password} onChange={e => setPassword(e.target.value)} className="px-4 py-3 rounded-xl border-2 border-blue-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-lg hover:border-blue-300 hover:bg-blue-50" required />
+            <input type="password" placeholder="" value={password} onChange={e => setPassword(e.target.value)} className="px-4 py-3 rounded-xl border-2 border-blue-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-lg hover:border-blue-300 hover:bg-blue-50 text-gray-900 bg-white" required />
 
             <label className="text-xs font-bold text-gray-700">DATE OF BIRTH <span className="text-red-500">*</span></label>
             <div className="flex gap-2">
-              <select value={dobMonth} onChange={e => setDobMonth(e.target.value)} className="flex-1 px-4 py-3 rounded-xl border-2 border-blue-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-lg hover:border-blue-300 hover:bg-blue-50" required>
+              <select value={dobMonth} onChange={e => setDobMonth(e.target.value)} className="flex-1 px-4 py-3 rounded-xl border-2 border-blue-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-lg hover:border-blue-300 hover:bg-blue-50 text-gray-900 bg-white" required>
                 {months.map((m, i) => <option key={i} value={m}>{m}</option>)}
               </select>
-              <select value={dobDay} onChange={e => setDobDay(e.target.value)} className="flex-1 px-4 py-3 rounded-xl border-2 border-blue-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-lg hover:border-blue-300 hover:bg-blue-50" required>
+              <select value={dobDay} onChange={e => setDobDay(e.target.value)} className="flex-1 px-4 py-3 rounded-xl border-2 border-blue-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-lg hover:border-blue-300 hover:bg-blue-50 text-gray-900 bg-white" required>
                 {days.map((d, i) => <option key={i} value={d}>{d}</option>)}
               </select>
-              <select value={dobYear} onChange={e => setDobYear(e.target.value)} className="flex-1 px-4 py-3 rounded-xl border-2 border-blue-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-lg hover:border-blue-300 hover:bg-blue-50" required>
+              <select value={dobYear} onChange={e => setDobYear(e.target.value)} className="flex-1 px-4 py-3 rounded-xl border-2 border-blue-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-lg hover:border-blue-300 hover:bg-blue-50 text-gray-900 bg-white" required>
                 {years.map((y, i) => <option key={i} value={y}>{y}</option>)}
               </select>
             </div>
@@ -371,7 +371,7 @@ export default function RegisterPage() {
                   placeholder: 'Phone number'
                 }}
                 containerClass="w-full"
-                inputClass="w-full px-4 py-3 rounded-xl border-2 border-blue-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-lg hover:border-blue-300 hover:bg-blue-50"
+                inputClass="w-full px-4 py-3 rounded-xl border-2 border-blue-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-lg hover:border-blue-300 hover:bg-blue-50 text-gray-900 bg-white"
                 buttonClass="px-4 py-3 rounded-l-xl border-2 border-blue-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none hover:border-blue-300"
                 dropdownClass="w-full"
               />
