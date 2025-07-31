@@ -2,18 +2,22 @@
 
 A full-stack banking application built with FastAPI, Next.js, and Docker. Features include user authentication, banking operations, OAuth integration, and a modern responsive UI.
 
-## 🚀 Quick Start (Docker)
+## Quick Start
 
-### Prerequisites
-- [Docker Desktop](https://www.docker.com/products/docker-desktop/) installed and running
-- 4GB+ RAM recommended
+### Option 1: Docker Hub (Recommended)
+```bash
+# Run directly from Docker Hub
+docker run -d -p 80:80 --name bluebank chenhexu/bluebank:latest
 
-### One-Command Setup
+# Access the application
+open http://localhost
+```
 
+### Option 2: Local Development
 ```bash
 # 1. Clone the repository
-git clone https://github.com/yourusername/bluebank.git
-cd bluebank
+git clone https://github.com/chenhexu/Bank_Project.git
+cd Bank_Project
 
 # 2. Start the application
 # Windows:
@@ -28,12 +32,12 @@ npm start
 ```
 
 ### Access the Application
-- 🌐 **Frontend**: http://localhost:3000
-- 🔧 **Backend API**: http://localhost:8000
+- 🌐 **Frontend**: http://localhost:3000 (local) or http://localhost (Docker Hub)
+- 🔧 **Backend API**: http://localhost:8000 (local) or http://localhost/api/ (Docker Hub)
 - 📚 **API Documentation**: http://localhost:8000/docs
 
 ### First Time Setup
-1. Open http://localhost:3000
+1. Open the application URL
 2. Click "Sign up" to create your first account
 3. Start using the banking features!
 
@@ -52,14 +56,15 @@ npm start
 - Withdraw funds (with insufficient funds protection)
 - Transfer money between users
 - Complete transaction history
-- Real-time notifications
+- Real-time notifications with sender/recipient info
 
 ### 🎨 User Experience
 - Modern responsive design with Tailwind CSS
-- Dark mode support
+- Dark mode support with persistence
 - Animated balance transitions
 - Mobile-friendly interface
 - Real-time updates
+- Notification system for transfers
 
 ### 🔧 Technical Features
 - FastAPI backend with automatic API documentation
@@ -68,6 +73,32 @@ npm start
 - Email notifications (Gmail/SendGrid)
 - Health checks and monitoring
 - Hot reloading for development
+- Single Docker image deployment
+
+## 🐳 Docker Deployment
+
+### Single Image (Production Ready)
+```bash
+# Pull from Docker Hub
+docker pull chenhexu/bluebank:latest
+
+# Run the application
+docker run -d -p 80:80 --name bluebank chenhexu/bluebank:latest
+
+# Access at http://localhost
+```
+
+### Multi-Container Development
+```bash
+# Start with hot reloading
+docker-compose -f docker/docker-compose.dev.yml up --build -d
+
+# View logs
+docker-compose -f docker/docker-compose.dev.yml logs -f
+
+# Stop services
+docker-compose -f docker/docker-compose.dev.yml down
+```
 
 ## 🛠️ Development Setup
 
@@ -109,15 +140,19 @@ cp backend/.env.example backend/.env
 # See backend/.env.example for all available options
 ```
 
-### Optional Features Setup
-- **Email Recovery**: Configure Gmail credentials in `backend/.env`
-- **OAuth Login**: Configure Google/Facebook app credentials in `backend/.env`
-- **Database**: SQLite database is created automatically
+### Required Environment Variables
+```env
+# Email Configuration (for password recovery)
+GMAIL_EMAIL=your-email@gmail.com
+GMAIL_APP_PASSWORD=your-app-password
 
-### Optional Features
-- **Email Notifications**: Configure Gmail or SendGrid for password recovery
-- **OAuth**: Set up Google and Facebook OAuth for social login
-- **Database**: SQLite is used by default, can be changed to PostgreSQL
+# OAuth Configuration (optional)
+FACEBOOK_APP_ID=your-facebook-app-id
+FACEBOOK_APP_SECRET=your-facebook-app-secret
+
+# Database
+DATABASE_URL=sqlite:///bank_users.db
+```
 
 ## 📁 Project Structure
 
@@ -126,50 +161,55 @@ Bank_Project/
 ├── backend/                 # FastAPI backend
 │   ├── main.py             # Main application
 │   ├── requirements.txt    # Python dependencies
-│   ├── Dockerfile         # Backend container
-│   ├── env.template       # Environment template
-│   └── Api_Key.env        # Environment variables
+│   ├── .env               # Environment variables
+│   └── .env.example       # Environment template
 ├── frontend/               # Next.js frontend
 │   ├── app/               # Next.js pages
-│   ├── components/        # React components
-│   ├── contexts/          # React contexts
+│   ├── contexts/          # React contexts (DarkMode)
 │   ├── package.json       # Node.js dependencies
-│   └── Dockerfile         # Frontend container
-├── docker-compose.yml     # Production setup
-├── docker-compose.dev.yml # Development setup
-├── start.bat             # Windows startup script
-├── start-dev.bat         # Windows dev startup script
-├── start.sh              # Linux/Mac startup script
-└── README.md             # This file
+│   └── phone-input-custom.css # Custom styling
+├── docker/                 # Docker configuration
+│   ├── docker-compose.yml # Production setup
+│   └── docker-compose.dev.yml # Development setup
+├── scripts/                # Automation scripts
+│   ├── start.bat          # Windows startup
+│   ├── start.sh           # Linux/Mac startup
+│   └── setup.ps1          # PowerShell setup
+├── docs/                   # Documentation
+│   ├── DEPLOYMENT.md      # Deployment guide
+│   ├── GOOGLE_OAUTH_SETUP.md # OAuth setup
+│   └── QUICK_START.md     # Quick start guide
+├── Dockerfile              # Single image build
+├── nginx.conf              # Nginx configuration
+├── start.sh               # Container startup script
+└── README.md              # This file
 ```
 
 ## 🐳 Docker Commands
 
-### Production
+### Production (Single Image)
 ```bash
-# Build and start
-docker-compose up --build -d
+# Build single image
+docker build -t bluebank:latest .
 
-# View logs
-docker-compose logs -f
+# Run single container
+docker run -d -p 80:80 --name bluebank bluebank:latest
 
-# Stop services
-docker-compose down
-
-# Restart
-docker-compose restart
+# Stop container
+docker stop bluebank
+docker rm bluebank
 ```
 
-### Development
+### Development (Multi-Container)
 ```bash
-# Build and start with hot reloading
-docker-compose -f docker-compose.dev.yml up --build -d
+# Build and start
+docker-compose -f docker/docker-compose.dev.yml up --build -d
 
 # View logs
-docker-compose -f docker-compose.dev.yml logs -f
+docker-compose -f docker/docker-compose.dev.yml logs -f
 
 # Stop services
-docker-compose -f docker-compose.dev.yml down
+docker-compose -f docker/docker-compose.dev.yml down
 ```
 
 ## 🔍 Troubleshooting
@@ -185,6 +225,7 @@ docker-compose -f docker-compose.dev.yml down
 2. **Ports already in use**
    ```bash
    # Check what's using the ports
+   netstat -ano | findstr :80
    netstat -ano | findstr :3000
    netstat -ano | findstr :8000
    ```
@@ -192,39 +233,58 @@ docker-compose -f docker-compose.dev.yml down
 3. **Build fails**
    ```bash
    # Clean up and rebuild
-   docker-compose down
    docker system prune -f
-   docker-compose up --build -d
+   docker build -t bluebank:latest .
    ```
 
-4. **Frontend can't connect to backend**
-   - Check if both services are running: `docker-compose ps`
-   - Verify backend health: `curl http://localhost:8000/`
-   - Check logs: `docker-compose logs backend`
+4. **Container won't start**
+   ```bash
+   # Check logs
+   docker logs bluebank-single
+   
+   # Remove and recreate
+   docker rm bluebank-single
+   docker run -d -p 80:80 --name bluebank-single bluebank:latest
+   ```
 
 ### Health Checks
 ```bash
-# Check backend health
-curl http://localhost:8000/
+# Check if container is running
+docker ps
 
-# Check container status
-docker-compose ps
+# Check container logs
+docker logs bluebank-single
+
+# Test the application
+curl http://localhost
 ```
 
 ## 🚀 Deployment
 
-### Local Production
+### Docker Hub Deployment
 ```bash
-# Use production configuration
-docker-compose up --build -d
+# Build and tag
+docker build -t bluebank:latest .
+docker tag bluebank:latest chenhexu/bluebank:latest
+
+# Push to Docker Hub
+docker push chenhexu/bluebank:latest
 ```
 
 ### Cloud Deployment
-1. **Update environment variables** for production
-2. **Set up SSL certificates** for HTTPS
-3. **Configure reverse proxy** (nginx)
-4. **Set up monitoring** and logging
-5. **Use production database** (PostgreSQL recommended)
+1. **Google Cloud Run**: Perfect for serverless deployment
+2. **AWS ECS**: For container orchestration
+3. **Azure Container Instances**: For simple container deployment
+4. **DigitalOcean App Platform**: For easy deployment
+
+### Environment Setup for Production
+```bash
+# Set production environment variables
+export ENVIRONMENT=production
+export DATABASE_URL=your-production-database-url
+export GMAIL_EMAIL=your-production-email
+export GMAIL_APP_PASSWORD=your-production-app-password
+```
 
 ## 📊 API Endpoints
 
@@ -249,11 +309,12 @@ docker-compose up --build -d
 ## 🧪 Testing
 
 ### Manual Testing
-1. Register a new account at http://localhost:3000/register
+1. Register a new account
 2. Test banking operations (deposit, withdraw, transfer)
-3. Try OAuth login options
+3. Try OAuth login options (Google, Facebook)
 4. Test password recovery
 5. Explore dark mode toggle
+6. Test notification system
 
 ### API Testing
 - Visit http://localhost:8000/docs for interactive API documentation
@@ -275,11 +336,11 @@ This project is open source and available under the [MIT License](LICENSE).
 
 If you encounter issues:
 
-1. **Check the logs**: `docker-compose logs -f`
+1. **Check the logs**: `docker logs bluebank-single`
 2. **Verify Docker**: `docker info`
 3. **Check resources**: `docker stats`
-4. **Restart services**: `docker-compose restart`
-5. **Clean rebuild**: `docker-compose down && docker-compose up --build -d`
+4. **Restart container**: `docker restart bluebank-single`
+5. **Clean rebuild**: `docker rm bluebank-single && docker run -d -p 80:80 --name bluebank-single bluebank:latest`
 
 ## 🎉 Success!
 
@@ -289,9 +350,12 @@ Once everything is running:
 - Try the OAuth login options
 - Explore the dark mode toggle
 - Check out the transaction history
+- Test the notification system
 
 Happy banking! 🏦
 
 ---
 
-**Made with ❤️ using FastAPI, Next.js, and Docker** 
+**Made with ❤️ using FastAPI, Next.js, and Docker**
+
+**Available on Docker Hub**: `chenhexu/bluebank:latest` 

@@ -2,19 +2,19 @@ version: '3.8'
 
 services:
   backend:
-    build: ./backend
+    build: ../backend
     ports:
       - "8000:8000"
     env_file:
-      - ./backend/.env
+      - ../backend/.env
     volumes:
-      - ./backend:/app
+      - ../backend:/app
       - bank_data:/app/data
     networks:
       - bank_network
 
   frontend:
-    build: ./frontend
+    build: ../frontend
     ports:
       - "3000:3000"
     environment:
