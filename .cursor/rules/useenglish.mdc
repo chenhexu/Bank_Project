@@ -1,0 +1,5 @@
+---
+description: Always respond in English
+globs:
+alwaysApply: True
+---

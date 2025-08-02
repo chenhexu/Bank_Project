@@ -229,14 +229,8 @@ export default function RegisterPage() {
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     setMessage("");
-    
-    // Debug: Log the API URL
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || '';
-    console.log('API URL:', apiUrl);
-    console.log('Full URL:', `${apiUrl}/register`);
-    
     try {
-      const res = await fetch(`${apiUrl}/api/register`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
