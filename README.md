@@ -1,6 +1,25 @@
 # BlueBank - Modern Banking Application
 
-A full-stack banking application built with FastAPI, Next.js, and Docker. Features include user authentication, banking operations, OAuth integration, and a modern responsive UI.
+A full-stack banking application built with FastAPI, Next.js, and Docker. Features include user authentication, banking operations, OAuth integration, and a modern responsive UI. **Now with AWS PostgreSQL cloud database for cross-computer transfers!**
+
+## 🌟 New Features (Latest Update)
+
+### ☁️ Cloud Database Integration
+- **AWS RDS PostgreSQL** database for shared data across computers
+- **Cross-computer transfers** - send money between different devices
+- **Real-time synchronization** - all users see the same data
+- **Scalable architecture** - ready for production deployment
+
+### 🔄 Cross-Computer Testing
+```bash
+# Computer 1 (Your computer)
+docker run -d -p 8080:80 --name bluebank chenhexu/bluebank:latest
+
+# Computer 2 (Dad's computer)
+docker run -d -p 8080:80 --name bluebank chenhexu/bluebank:latest
+
+# Both computers will share the same database and can transfer money between each other!
+```
 
 ## Quick Start
 
@@ -106,9 +125,10 @@ docker ps -a
 - Real-time balance display with animated counter
 - Deposit funds
 - Withdraw funds (with insufficient funds protection)
-- Transfer money between users
+- **Transfer money between users** (now works across different computers!)
 - Complete transaction history
 - Real-time notifications with sender/recipient info
+- **Cross-computer synchronization** via cloud database
 
 ### User Experience
 - Modern responsive design with Tailwind CSS
@@ -121,11 +141,13 @@ docker ps -a
 ### Technical Features
 - FastAPI backend with automatic API documentation
 - Next.js frontend with TypeScript
-- SQLite database with Docker volume persistence
+- **AWS PostgreSQL cloud database** for cross-computer access
+- SQLite database (local development fallback)
 - Email notifications (Gmail/SendGrid)
 - Health checks and monitoring
 - Hot reloading for development
 - Single Docker image deployment
+- **Cloud-ready architecture** for production scaling
 
 ## Docker Deployment
 
@@ -134,10 +156,15 @@ docker ps -a
 # Pull from Docker Hub
 docker pull chenhexu/bluebank:latest
 
-# Run the application
+# Run the application (uses cloud database by default)
 docker run -d -p 8080:80 --name bluebank chenhexu/bluebank:latest
 
 # Access at http://localhost:8080
+
+# For cross-computer testing, run on multiple computers:
+# Computer 1: docker run -d -p 8080:80 --name bluebank chenhexu/bluebank:latest
+# Computer 2: docker run -d -p 8080:80 --name bluebank chenhexu/bluebank:latest
+# Both will share the same cloud database!
 ```
 
 ### Multi-Container Development
@@ -202,8 +229,9 @@ GMAIL_APP_PASSWORD=your-app-password
 FACEBOOK_APP_ID=your-facebook-app-id
 FACEBOOK_APP_SECRET=your-facebook-app-secret
 
-# Database
-DATABASE_URL=sqlite:///bank_users.db
+# Database (Cloud PostgreSQL by default, SQLite for local dev)
+DATABASE_URL=postgresql://postgres:password@host:5432/database
+# For local development: DATABASE_URL=sqlite:///bank_users.db
 ```
 
 ## Project Structure
@@ -368,6 +396,19 @@ export GMAIL_APP_PASSWORD=your-production-app-password
 5. Explore dark mode toggle
 6. Test notification system
 
+### Cross-Computer Testing
+1. **Run BlueBank on two different computers**
+2. **Register accounts on both computers**
+3. **Transfer money between computers**
+4. **Verify both computers see the same data**
+5. **Test real-time synchronization**
+
+```bash
+# Computer 1: Register user A
+# Computer 2: Register user B
+# Transfer from A to B - both computers will see the transaction!
+```
+
 ### API Testing
 - Visit http://localhost:8000/docs for interactive API documentation
 - Use the built-in Swagger UI to test endpoints
@@ -403,11 +444,20 @@ Once everything is running:
 - Explore the dark mode toggle
 - Check out the transaction history
 - Test the notification system
+- **Test cross-computer transfers!**
+
+### 🎉 Cross-Computer Transfer Success!
+- ✅ **Cloud database**: AWS PostgreSQL
+- ✅ **Shared data**: All computers see the same users
+- ✅ **Real-time transfers**: Money moves between computers instantly
+- ✅ **Scalable**: Ready for production deployment
 
 Happy banking!
 
 ---
 
-**Made with ❤️ using FastAPI, Next.js, and Docker**
+**Made with ❤️ using FastAPI, Next.js, Docker, and AWS PostgreSQL**
 
-**Available on Docker Hub**: `chenhexu/bluebank:latest` 
+**Available on Docker Hub**: `chenhexu/bluebank:latest`
+
+**Latest Update**: Cloud database migration for cross-computer transfers! 🚀 
