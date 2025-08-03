@@ -3,8 +3,8 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from .models import Base
 
-# Database URL configuration
-DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./bank_users.db")
+# Database URL configuration - default to cloud PostgreSQL
+DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://postgres:UxI:dxl81yG]uBK:rU<U<sUdm5EZ@bluebank-db.ca76eoy2kz8t.us-east-1.rds.amazonaws.com:5432/postgres")
 
 if DATABASE_URL.startswith("postgresql://"):
     # PostgreSQL configuration
