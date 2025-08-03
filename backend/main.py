@@ -59,6 +59,14 @@ def get_db_connection():
         finally:
             conn.close()
 
+def get_placeholder():
+    """Get the correct placeholder for the current database"""
+    database_url = os.getenv("DATABASE_URL")
+    if database_url and database_url.startswith("postgresql://"):
+        return "%s"  # PostgreSQL
+    else:
+        return "?"    # SQLite
+
 # Models
 class User(BaseModel):
     email: str
@@ -173,7 +181,8 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
 def authenticate(email: str, password: str):
     with get_db_connection() as conn:
         cursor = conn.cursor()
-        cursor.execute("SELECT password, auth_provider FROM users WHERE email = %s", (email,))
+        placeholder = get_placeholder()
+        cursor.execute(f"SELECT password, auth_provider FROM users WHERE email = {placeholder}", (email,))
         row = cursor.fetchone()
     if row:
         hashed_password, auth_provider = row
@@ -354,17 +363,19 @@ def get_or_create_facebook_user(facebook_user_info):
 def get_balance(username: str) -> Decimal:
     with get_db_connection() as conn:
         cursor = conn.cursor()
-        cursor.execute("SELECT balance FROM users WHERE username = %s", (username,))
+        placeholder = get_placeholder()
+        cursor.execute(f"SELECT balance FROM users WHERE username = {placeholder}", (username,))
         balance = cursor.fetchone()
-    if balance:
+    if balance and balance[0] is not None:
         return Decimal(balance[0])
     else:
-        raise HTTPException(status_code=404, detail="User not found")
+        return Decimal('0.00')  # Default balance for new users
 
 def update_balance(username: str, new_balance: Decimal):
     with get_db_connection() as conn:
         cursor = conn.cursor()
-        cursor.execute("UPDATE users SET balance = %s WHERE username = %s", (str(new_balance), username))
+        placeholder = get_placeholder()
+        cursor.execute(f"UPDATE users SET balance = {placeholder} WHERE username = {placeholder}", (str(new_balance), username))
         conn.commit()
 
 def record_transaction(username, type_, amount, old_balance, new_balance, other_user=None):
@@ -372,9 +383,10 @@ def record_transaction(username, type_, amount, old_balance, new_balance, other_
         cursor = conn.cursor()
         # Add other_user info to the transaction description
         description = f"to {other_user}" if other_user and type_ == "Transfer Out" else f"from {other_user}" if other_user and type_ == "Transfer In" else ""
-        cursor.execute('''
+        placeholder = get_placeholder()
+        cursor.execute(f'''
             INSERT INTO transactions (username, type, amount, old_balance, new_balance, timestamp, description)
-            VALUES (%s, %s, %s, %s, %s, %s, %s)
+            VALUES ({placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder})
         ''', (username, type_, str(amount), str(old_balance), str(new_balance), datetime.now().strftime('%Y-%m-%d %H:%M:%S'), description))
         conn.commit()
 
@@ -454,7 +466,8 @@ def register(user: User):
         hashed_pw = hash_password(user.password)
         with get_db_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute("INSERT INTO users (username, email, display_name, password) VALUES (%s, %s, %s, %s)", (user.username, user.email, user.display_name, hashed_pw))
+            placeholder = get_placeholder()
+            cursor.execute(f"INSERT INTO users (username, email, display_name, password) VALUES ({placeholder}, {placeholder}, {placeholder}, {placeholder})", (user.username, user.email, user.display_name, hashed_pw))
             conn.commit()
         print(f"[DEBUG] Register success: email={user.email}")
         try:
@@ -524,9 +537,10 @@ def deposit(data: TransactionRequest):
         raise HTTPException(status_code=400, detail="Amount must be positive")
 
     # Get username from email for balance operations
-    with sqlite3.connect(DB_NAME, timeout=10, check_same_thread=False) as conn:
+    with get_db_connection() as conn:
         cursor = conn.cursor()
-        cursor.execute("SELECT username FROM users WHERE email = ?", (data.email,))
+        placeholder = get_placeholder()
+        cursor.execute(f"SELECT username FROM users WHERE email = {placeholder}", (data.email,))
         row = cursor.fetchone()
         if not row:
             raise HTTPException(status_code=404, detail="User not found")
@@ -548,9 +562,10 @@ def withdraw(data: TransactionRequest):
         raise HTTPException(status_code=400, detail="Amount must be positive")
 
     # Get username from email for balance operations
-    with sqlite3.connect(DB_NAME, timeout=10, check_same_thread=False) as conn:
+    with get_db_connection() as conn:
         cursor = conn.cursor()
-        cursor.execute("SELECT username FROM users WHERE email = ?", (data.email,))
+        placeholder = get_placeholder()
+        cursor.execute(f"SELECT username FROM users WHERE email = {placeholder}", (data.email,))
         row = cursor.fetchone()
         if not row:
             raise HTTPException(status_code=404, detail="User not found")
@@ -580,14 +595,15 @@ def transfer(data: TransferRequest):
     # Check if recipient exists
     with get_db_connection() as conn:
         cursor = conn.cursor()
-        cursor.execute("SELECT username FROM users WHERE email = %s", (data.to_email,))
+        placeholder = get_placeholder()
+        cursor.execute(f"SELECT username FROM users WHERE email = {placeholder}", (data.to_email,))
         recipient_row = cursor.fetchone()
         if not recipient_row:
             raise HTTPException(status_code=404, detail="Recipient not found")
         recipient_username = recipient_row[0]
 
         # Get sender username
-        cursor.execute("SELECT username FROM users WHERE email = %s", (data.from_email,))
+        cursor.execute(f"SELECT username FROM users WHERE email = {placeholder}", (data.from_email,))
         sender_row = cursor.fetchone()
         if not sender_row:
             raise HTTPException(status_code=404, detail="Sender not found")
