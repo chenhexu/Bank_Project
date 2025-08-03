@@ -409,14 +409,15 @@ def send_welcome_email(to_email, display_name):
         print(f"[DEBUG] Failed to send welcome email via SendGrid: {e}")
 
 def get_balance_by_email(email: str) -> Decimal:
-    with sqlite3.connect(DB_NAME, timeout=10, check_same_thread=False) as conn:
+    with get_db_connection() as conn:
         cursor = conn.cursor()
-        cursor.execute("SELECT balance FROM users WHERE email = ?", (email,))
+        placeholder = get_placeholder()
+        cursor.execute(f"SELECT balance FROM users WHERE email = {placeholder}", (email,))
         balance = cursor.fetchone()
-    if balance:
+    if balance and balance[0] is not None:
         return Decimal(balance[0])
     else:
-        raise HTTPException(status_code=404, detail="User not found")
+        return Decimal('0.00')  # Default balance for new users
 
 def generate_recovery_code() -> str:
     """Generate a random 16-character recovery code"""
@@ -681,15 +682,16 @@ def transactions_post(data: TransactionsRequest):
         raise HTTPException(status_code=401, detail="Invalid credentials")
     
     # Get username from email for transaction lookup
-    with sqlite3.connect(DB_NAME, timeout=10, check_same_thread=False) as conn:
+    with get_db_connection() as conn:
         cursor = conn.cursor()
-        cursor.execute("SELECT username FROM users WHERE email = ?", (data.email,))
+        placeholder = get_placeholder()
+        cursor.execute(f"SELECT username FROM users WHERE email = {placeholder}", (data.email,))
         row = cursor.fetchone()
         if not row:
             raise HTTPException(status_code=404, detail="User not found")
         username = row[0]
         
-        cursor.execute("SELECT type, amount, old_balance, new_balance, timestamp, description FROM transactions WHERE username = ? ORDER BY id DESC", (username,))
+        cursor.execute(f"SELECT type, amount, old_balance, new_balance, timestamp, description FROM transactions WHERE username = {placeholder} ORDER BY id DESC", (username,))
         rows = cursor.fetchall()
 
     return [
@@ -707,9 +709,10 @@ def transactions_post(data: TransactionsRequest):
 def get_profile(data: ProfileRequest):
     if not authenticate(data.email, data.password):
         raise HTTPException(status_code=401, detail="Invalid credentials")
-    with sqlite3.connect(DB_NAME, timeout=10, check_same_thread=False) as conn:
+    with get_db_connection() as conn:
         cursor = conn.cursor()
-        cursor.execute("SELECT username, email, display_name FROM users WHERE email = ?", (data.email,))
+        placeholder = get_placeholder()
+        cursor.execute(f"SELECT username, email, display_name FROM users WHERE email = {placeholder}", (data.email,))
         row = cursor.fetchone()
     if row:
         return {"username": row[0], "email": row[1], "display_name": row[2]}
