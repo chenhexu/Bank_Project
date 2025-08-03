@@ -426,13 +426,14 @@ def generate_recovery_code() -> str:
 def create_recovery_code(email: str) -> str:
     """Create a new recovery code for the given email"""
     recovery_code = generate_recovery_code()
-    with sqlite3.connect(DB_NAME, timeout=10, check_same_thread=False) as conn:
+    with get_db_connection() as conn:
         cursor = conn.cursor()
+        placeholder = get_placeholder()
         # Mark any existing codes as used
-        cursor.execute("UPDATE recovery_codes SET used = 1 WHERE email = ?", (email,))
+        cursor.execute(f"UPDATE recovery_codes SET used = 1 WHERE email = {placeholder}", (email,))
         # Insert new recovery code
         cursor.execute(
-            "INSERT INTO recovery_codes (email, recovery_code, created_at) VALUES (?, ?, ?)",
+            f"INSERT INTO recovery_codes (email, recovery_code, created_at) VALUES ({placeholder}, {placeholder}, {placeholder})",
             (email, recovery_code, datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
         )
         conn.commit()
@@ -440,20 +441,22 @@ def create_recovery_code(email: str) -> str:
 
 def validate_recovery_code(email: str, recovery_code: str) -> bool:
     """Validate a recovery code for the given email"""
-    with sqlite3.connect(DB_NAME, timeout=10, check_same_thread=False) as conn:
+    with get_db_connection() as conn:
         cursor = conn.cursor()
+        placeholder = get_placeholder()
         cursor.execute(
-            "SELECT id FROM recovery_codes WHERE email = ? AND recovery_code = ? AND used = 0",
+            f"SELECT id FROM recovery_codes WHERE email = {placeholder} AND recovery_code = {placeholder} AND used = 0",
             (email, recovery_code)
         )
         return cursor.fetchone() is not None
 
 def mark_recovery_code_used(email: str, recovery_code: str):
     """Mark a recovery code as used"""
-    with sqlite3.connect(DB_NAME, timeout=10, check_same_thread=False) as conn:
+    with get_db_connection() as conn:
         cursor = conn.cursor()
+        placeholder = get_placeholder()
         cursor.execute(
-            "UPDATE recovery_codes SET used = 1 WHERE email = ? AND recovery_code = ?",
+            f"UPDATE recovery_codes SET used = 1 WHERE email = {placeholder} AND recovery_code = {placeholder}",
             (email, recovery_code)
         )
         conn.commit()
@@ -717,9 +720,10 @@ def get_profile(data: ProfileRequest):
 def generate_recovery_code_endpoint(data: RecoveryPasswordRequest):
     """Generate a new recovery code for password reset"""
     # Check if user exists
-    with sqlite3.connect(DB_NAME, timeout=10, check_same_thread=False) as conn:
+    with get_db_connection() as conn:
         cursor = conn.cursor()
-        cursor.execute("SELECT id FROM users WHERE email = ?", (data.email,))
+        placeholder = get_placeholder()
+        cursor.execute(f"SELECT id FROM users WHERE email = {placeholder}", (data.email,))
         if not cursor.fetchone():
             raise HTTPException(status_code=404, detail="User not found")
     
@@ -778,9 +782,10 @@ def generate_recovery_code_endpoint(data: RecoveryPasswordRequest):
 def reset_password(data: ResetPasswordRequest):
     """Reset password using recovery code"""
     # Check if user exists
-    with sqlite3.connect(DB_NAME, timeout=10, check_same_thread=False) as conn:
+    with get_db_connection() as conn:
         cursor = conn.cursor()
-        cursor.execute("SELECT id FROM users WHERE email = ?", (data.email,))
+        placeholder = get_placeholder()
+        cursor.execute(f"SELECT id FROM users WHERE email = {placeholder}", (data.email,))
         if not cursor.fetchone():
             raise HTTPException(status_code=404, detail="User not found")
     
@@ -790,9 +795,9 @@ def reset_password(data: ResetPasswordRequest):
     
     # Hash new password and update
     hashed_password = hash_password(data.new_password)
-    with sqlite3.connect(DB_NAME, timeout=10, check_same_thread=False) as conn:
+    with get_db_connection() as conn:
         cursor = conn.cursor()
-        cursor.execute("UPDATE users SET password = ? WHERE email = ?", (hashed_password, data.email))
+        cursor.execute(f"UPDATE users SET password = {placeholder} WHERE email = {placeholder}", (hashed_password, data.email))
         conn.commit()
     
     # Mark recovery code as used
