@@ -15,6 +15,8 @@ from dotenv import load_dotenv
 import os
 import requests
 import json
+import psycopg2
+from contextlib import contextmanager
 # Load environment variables
 load_dotenv(".env")
 from sendgrid import SendGridAPIClient
@@ -35,6 +37,27 @@ app.add_middleware(
 )
 
 DB_NAME = os.path.join(os.path.dirname(__file__), "bank_users.db")
+
+# Database connection function
+@contextmanager
+def get_db_connection():
+    """Get database connection (PostgreSQL if available, otherwise SQLite)"""
+    database_url = os.getenv("DATABASE_URL")
+    
+    if database_url and database_url.startswith("postgresql://"):
+        # Use PostgreSQL
+        conn = psycopg2.connect(database_url)
+        try:
+            yield conn
+        finally:
+            conn.close()
+    else:
+        # Use SQLite (fallback)
+        conn = sqlite3.connect(DB_NAME, timeout=10, check_same_thread=False)
+        try:
+            yield conn
+        finally:
+            conn.close()
 
 # Models
 class User(BaseModel):
@@ -148,9 +171,9 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
     return pwd_context.verify(plain_password, hashed_password)
 
 def authenticate(email: str, password: str):
-    with sqlite3.connect(DB_NAME, timeout=10, check_same_thread=False) as conn:
+    with get_db_connection() as conn:
         cursor = conn.cursor()
-        cursor.execute("SELECT password, auth_provider FROM users WHERE email = ?", (email,))
+        cursor.execute("SELECT password, auth_provider FROM users WHERE email = %s", (email,))
         row = cursor.fetchone()
     if row:
         hashed_password, auth_provider = row
@@ -161,7 +184,7 @@ def authenticate(email: str, password: str):
         elif auth_provider == 'facebook' and password == 'facebook_auth':
             return True
         # For regular users, verify password
-        elif auth_provider == 'email':
+        elif auth_provider == 'email' or auth_provider is None:
             return verify_password(password, hashed_password)
     return False
 
@@ -329,9 +352,9 @@ def get_or_create_facebook_user(facebook_user_info):
             return {"username": username, "email": email, "display_name": display_name}
 
 def get_balance(username: str) -> Decimal:
-    with sqlite3.connect(DB_NAME, timeout=10, check_same_thread=False) as conn:
+    with get_db_connection() as conn:
         cursor = conn.cursor()
-        cursor.execute("SELECT balance FROM users WHERE username = ?", (username,))
+        cursor.execute("SELECT balance FROM users WHERE username = %s", (username,))
         balance = cursor.fetchone()
     if balance:
         return Decimal(balance[0])
@@ -339,19 +362,19 @@ def get_balance(username: str) -> Decimal:
         raise HTTPException(status_code=404, detail="User not found")
 
 def update_balance(username: str, new_balance: Decimal):
-    with sqlite3.connect(DB_NAME, timeout=10, check_same_thread=False) as conn:
+    with get_db_connection() as conn:
         cursor = conn.cursor()
-        cursor.execute("UPDATE users SET balance = ? WHERE username = ?", (str(new_balance), username))
+        cursor.execute("UPDATE users SET balance = %s WHERE username = %s", (str(new_balance), username))
         conn.commit()
 
 def record_transaction(username, type_, amount, old_balance, new_balance, other_user=None):
-    with sqlite3.connect(DB_NAME, timeout=10, check_same_thread=False) as conn:
+    with get_db_connection() as conn:
         cursor = conn.cursor()
         # Add other_user info to the transaction description
         description = f"to {other_user}" if other_user and type_ == "Transfer Out" else f"from {other_user}" if other_user and type_ == "Transfer In" else ""
         cursor.execute('''
             INSERT INTO transactions (username, type, amount, old_balance, new_balance, timestamp, description)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
+            VALUES (%s, %s, %s, %s, %s, %s, %s)
         ''', (username, type_, str(amount), str(old_balance), str(new_balance), datetime.now().strftime('%Y-%m-%d %H:%M:%S'), description))
         conn.commit()
 
@@ -429,9 +452,9 @@ def register(user: User):
     print(f"[DEBUG] Register attempt: email={user.email}")
     try:
         hashed_pw = hash_password(user.password)
-        with sqlite3.connect(DB_NAME, timeout=10, check_same_thread=False) as conn:
+        with get_db_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute("INSERT INTO users (username, email, display_name, password) VALUES (?, ?, ?, ?)", (user.username, user.email, user.display_name, hashed_pw))
+            cursor.execute("INSERT INTO users (username, email, display_name, password) VALUES (%s, %s, %s, %s)", (user.username, user.email, user.display_name, hashed_pw))
             conn.commit()
         print(f"[DEBUG] Register success: email={user.email}")
         try:
@@ -439,9 +462,11 @@ def register(user: User):
         except Exception as e:
             print(f"[DEBUG] Failed to send welcome email: {e}")
         return {"message": "User registered successfully"}
-    except sqlite3.IntegrityError:
-        print(f"[DEBUG] Register failed (email exists): email={user.email}")
-        raise HTTPException(status_code=400, detail="Email already exists")
+    except Exception as e:
+        print(f"[DEBUG] Register failed: {e}")
+        if "duplicate key" in str(e).lower() or "unique constraint" in str(e).lower():
+            raise HTTPException(status_code=400, detail="Email already exists")
+        raise HTTPException(status_code=500, detail="Registration failed")
 
 @app.post("/login")
 def login(user: LoginRequest):
@@ -553,16 +578,16 @@ def transfer(data: TransferRequest):
         raise HTTPException(status_code=400, detail="Cannot transfer to yourself")
 
     # Check if recipient exists
-    with sqlite3.connect(DB_NAME, timeout=10, check_same_thread=False) as conn:
+    with get_db_connection() as conn:
         cursor = conn.cursor()
-        cursor.execute("SELECT username FROM users WHERE email = ?", (data.to_email,))
+        cursor.execute("SELECT username FROM users WHERE email = %s", (data.to_email,))
         recipient_row = cursor.fetchone()
         if not recipient_row:
             raise HTTPException(status_code=404, detail="Recipient not found")
         recipient_username = recipient_row[0]
 
         # Get sender username
-        cursor.execute("SELECT username FROM users WHERE email = ?", (data.from_email,))
+        cursor.execute("SELECT username FROM users WHERE email = %s", (data.from_email,))
         sender_row = cursor.fetchone()
         if not sender_row:
             raise HTTPException(status_code=404, detail="Sender not found")
