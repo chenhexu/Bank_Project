@@ -2,7 +2,6 @@ from fastapi import FastAPI, HTTPException, Body
 from pydantic import BaseModel
 from decimal import Decimal, getcontext
 from datetime import datetime
-import sqlite3
 import os
 import secrets
 import string
@@ -36,36 +35,22 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-DB_NAME = os.path.join(os.path.dirname(__file__), "bank_users.db")
-
 # Database connection function
 @contextmanager
 def get_db_connection():
-    """Get database connection (PostgreSQL if available, otherwise SQLite)"""
-    database_url = os.getenv("DATABASE_URL")
+    """Get database connection (PostgreSQL only)"""
+    database_url = os.getenv("DATABASE_URL", "postgresql://postgres:UxI:dxl81yG]uBK:rU<U<sUdm5EZ@bluebank-db.ca76eoy2kz8t.us-east-1.rds.amazonaws.com:5432/postgres")
     
-    if database_url and database_url.startswith("postgresql://"):
-        # Use PostgreSQL
-        conn = psycopg2.connect(database_url)
-        try:
-            yield conn
-        finally:
-            conn.close()
-    else:
-        # Use SQLite (fallback)
-        conn = sqlite3.connect(DB_NAME, timeout=10, check_same_thread=False)
-        try:
-            yield conn
-        finally:
-            conn.close()
+    # Use PostgreSQL
+    conn = psycopg2.connect(database_url)
+    try:
+        yield conn
+    finally:
+        conn.close()
 
 def get_placeholder():
-    """Get the correct placeholder for the current database"""
-    database_url = os.getenv("DATABASE_URL")
-    if database_url and database_url.startswith("postgresql://"):
-        return "%s"  # PostgreSQL
-    else:
-        return "?"    # SQLite
+    """Get the correct placeholder for PostgreSQL"""
+    return "%s"  # PostgreSQL
 
 # Models
 class User(BaseModel):
@@ -115,58 +100,52 @@ class ResetPasswordRequest(BaseModel):
     recovery_code: str
     new_password: str
 
-# DB setup
+# DB setup - PostgreSQL only
 def create_db():
-    with sqlite3.connect(DB_NAME, timeout=10, check_same_thread=False) as conn:
-        conn.execute("PRAGMA journal_mode=WAL;")
+    """Create database tables for PostgreSQL"""
+    with get_db_connection() as conn:
         cursor = conn.cursor()
+        
+        # Create users table
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS users (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                username TEXT UNIQUE NOT NULL,
-                email TEXT UNIQUE NOT NULL,
-                display_name TEXT,
-                password TEXT NOT NULL,
-                balance TEXT NOT NULL DEFAULT '0.00',
-                google_id TEXT,
-                auth_provider TEXT DEFAULT 'email'
+                id SERIAL PRIMARY KEY,
+                username VARCHAR(255) UNIQUE NOT NULL,
+                email VARCHAR(255) UNIQUE NOT NULL,
+                display_name VARCHAR(255),
+                password VARCHAR(255) NOT NULL,
+                balance DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+                google_id VARCHAR(255),
+                auth_provider VARCHAR(50) DEFAULT 'email'
             )
         ''')
         
-        # Add google_id column if it doesn't exist (for existing databases)
-        try:
-            cursor.execute("ALTER TABLE users ADD COLUMN google_id TEXT")
-        except sqlite3.OperationalError:
-            # Column already exists
-            pass
-            
-        # Add auth_provider column if it doesn't exist (for existing databases)
-        try:
-            cursor.execute("ALTER TABLE users ADD COLUMN auth_provider TEXT DEFAULT 'email'")
-        except sqlite3.OperationalError:
-            # Column already exists
-            pass
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS recovery_codes (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                email TEXT NOT NULL,
-                recovery_code TEXT NOT NULL,
-                used INTEGER DEFAULT 0,
-                created_at TEXT NOT NULL
-            )
-        ''')
+        # Create transactions table
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS transactions (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                username TEXT NOT NULL,
-                type TEXT NOT NULL,
-                amount TEXT NOT NULL,
-                old_balance TEXT NOT NULL,
-                new_balance TEXT NOT NULL,
-                timestamp TEXT NOT NULL,
-                description TEXT DEFAULT ''
+                id SERIAL PRIMARY KEY,
+                username VARCHAR(255) NOT NULL,
+                type VARCHAR(50) NOT NULL,
+                amount DECIMAL(10,2) NOT NULL,
+                old_balance DECIMAL(10,2) NOT NULL,
+                new_balance DECIMAL(10,2) NOT NULL,
+                timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                description TEXT,
+                other_user VARCHAR(255)
             )
         ''')
+        
+        # Create recovery_codes table
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS recovery_codes (
+                id SERIAL PRIMARY KEY,
+                email VARCHAR(255) NOT NULL,
+                code VARCHAR(255) NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                used BOOLEAN DEFAULT FALSE
+            )
+        ''')
+        
         conn.commit()
 
 create_db()
@@ -310,23 +289,23 @@ def get_or_create_google_user(google_user_info):
     google_id = google_user_info.get('id')
     display_name = google_user_info.get('name', '')
     
-    with sqlite3.connect(DB_NAME, timeout=10, check_same_thread=False) as conn:
+    with get_db_connection() as conn:
         cursor = conn.cursor()
         
         # Check if user exists
-        cursor.execute("SELECT username, display_name FROM users WHERE email = ?", (email,))
+        cursor.execute("SELECT username, display_name FROM users WHERE email = %s", (email,))
         existing_user = cursor.fetchone()
         
         if existing_user:
             # Update Google ID if not set
-            cursor.execute("UPDATE users SET google_id = ?, auth_provider = 'google' WHERE email = ?", (google_id, email))
+            cursor.execute("UPDATE users SET google_id = %s, auth_provider = 'google' WHERE email = %s", (google_id, email))
             conn.commit()
             return {"username": existing_user[0], "email": email, "display_name": existing_user[1] or display_name}
         else:
             # Create new user
             username = f"user_{google_id[-8:]}"  # Use last 8 chars of Google ID
             cursor.execute(
-                "INSERT INTO users (username, email, display_name, password, google_id, auth_provider) VALUES (?, ?, ?, ?, ?, ?)",
+                "INSERT INTO users (username, email, display_name, password, google_id, auth_provider) VALUES (%s, %s, %s, %s, %s, %s)",
                 (username, email, display_name, "google_auth", google_id, "google")
             )
             conn.commit()
@@ -338,23 +317,23 @@ def get_or_create_facebook_user(facebook_user_info):
     facebook_id = facebook_user_info.get('id')
     display_name = facebook_user_info.get('name', '')
     
-    with sqlite3.connect(DB_NAME, timeout=10, check_same_thread=False) as conn:
+    with get_db_connection() as conn:
         cursor = conn.cursor()
         
         # Check if user exists
-        cursor.execute("SELECT username, display_name FROM users WHERE email = ?", (email,))
+        cursor.execute("SELECT username, display_name FROM users WHERE email = %s", (email,))
         existing_user = cursor.fetchone()
         
         if existing_user:
             # Update Facebook ID if not set
-            cursor.execute("UPDATE users SET google_id = ?, auth_provider = 'facebook' WHERE email = ?", (facebook_id, email))
+            cursor.execute("UPDATE users SET google_id = %s, auth_provider = 'facebook' WHERE email = %s", (facebook_id, email))
             conn.commit()
             return {"username": existing_user[0], "email": email, "display_name": existing_user[1] or display_name}
         else:
             # Create new user
             username = f"user_{facebook_id[-8:]}"  # Use last 8 chars of Facebook ID
             cursor.execute(
-                "INSERT INTO users (username, email, display_name, password, google_id, auth_provider) VALUES (?, ?, ?, ?, ?, ?)",
+                "INSERT INTO users (username, email, display_name, password, google_id, auth_provider) VALUES (%s, %s, %s, %s, %s, %s)",
                 (username, email, display_name, "facebook_auth", facebook_id, "facebook")
             )
             conn.commit()
@@ -385,9 +364,9 @@ def record_transaction(username, type_, amount, old_balance, new_balance, other_
         description = f"to {other_user}" if other_user and type_ == "Transfer Out" else f"from {other_user}" if other_user and type_ == "Transfer In" else ""
         placeholder = get_placeholder()
         cursor.execute(f'''
-            INSERT INTO transactions (username, type, amount, old_balance, new_balance, timestamp, description)
-            VALUES ({placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder})
-        ''', (username, type_, str(amount), str(old_balance), str(new_balance), datetime.now().strftime('%Y-%m-%d %H:%M:%S'), description))
+            INSERT INTO transactions (username, type, amount, old_balance, new_balance, timestamp, description, other_user)
+            VALUES ({placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder})
+        ''', (username, type_, str(amount), str(old_balance), str(new_balance), datetime.now().strftime('%Y-%m-%d %H:%M:%S'), description, other_user))
         conn.commit()
 
 def send_welcome_email(to_email, display_name):
@@ -431,10 +410,10 @@ def create_recovery_code(email: str) -> str:
         cursor = conn.cursor()
         placeholder = get_placeholder()
         # Mark any existing codes as used
-        cursor.execute(f"UPDATE recovery_codes SET used = 1 WHERE email = {placeholder}", (email,))
+        cursor.execute(f"UPDATE recovery_codes SET used = TRUE WHERE email = {placeholder}", (email,))
         # Insert new recovery code
         cursor.execute(
-            f"INSERT INTO recovery_codes (email, recovery_code, created_at) VALUES ({placeholder}, {placeholder}, {placeholder})",
+            f"INSERT INTO recovery_codes (email, code, created_at) VALUES ({placeholder}, {placeholder}, {placeholder})",
             (email, recovery_code, datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
         )
         conn.commit()
@@ -446,7 +425,7 @@ def validate_recovery_code(email: str, recovery_code: str) -> bool:
         cursor = conn.cursor()
         placeholder = get_placeholder()
         cursor.execute(
-            f"SELECT id FROM recovery_codes WHERE email = {placeholder} AND recovery_code = {placeholder} AND used = 0",
+            f"SELECT id FROM recovery_codes WHERE email = {placeholder} AND code = {placeholder} AND used = FALSE",
             (email, recovery_code)
         )
         return cursor.fetchone() is not None
@@ -457,7 +436,7 @@ def mark_recovery_code_used(email: str, recovery_code: str):
         cursor = conn.cursor()
         placeholder = get_placeholder()
         cursor.execute(
-            f"UPDATE recovery_codes SET used = 1 WHERE email = {placeholder} AND recovery_code = {placeholder}",
+            f"UPDATE recovery_codes SET used = TRUE WHERE email = {placeholder} AND code = {placeholder}",
             (email, recovery_code)
         )
         conn.commit()
@@ -653,9 +632,9 @@ def transactions(username: str, password: str):
     if not authenticate(username, password):
         raise HTTPException(status_code=401, detail="Invalid credentials")
 
-    with sqlite3.connect(DB_NAME, timeout=10, check_same_thread=False) as conn:
+    with get_db_connection() as conn:
         cursor = conn.cursor()
-        cursor.execute("SELECT type, amount, old_balance, new_balance, timestamp, description FROM transactions WHERE username = ? ORDER BY id DESC", (username,))
+        cursor.execute("SELECT type, amount, old_balance, new_balance, timestamp, description, other_user FROM transactions WHERE username = %s ORDER BY id DESC", (username,))
         rows = cursor.fetchall()
 
     return [
@@ -665,7 +644,8 @@ def transactions(username: str, password: str):
             "old_balance": r[2],
             "new_balance": r[3],
             "timestamp": r[4],
-            "description": r[5]
+            "description": r[5],
+            "other_user": r[6]
         } for r in rows
     ]
 
@@ -691,7 +671,7 @@ def transactions_post(data: TransactionsRequest):
             raise HTTPException(status_code=404, detail="User not found")
         username = row[0]
         
-        cursor.execute(f"SELECT type, amount, old_balance, new_balance, timestamp, description FROM transactions WHERE username = {placeholder} ORDER BY id DESC", (username,))
+        cursor.execute("SELECT type, amount, old_balance, new_balance, timestamp, description, other_user FROM transactions WHERE username = %s ORDER BY id DESC", (username,))
         rows = cursor.fetchall()
 
     return [
@@ -701,7 +681,8 @@ def transactions_post(data: TransactionsRequest):
             "old_balance": r[2],
             "new_balance": r[3],
             "timestamp": r[4],
-            "description": r[5]
+            "description": r[5],
+            "other_user": r[6]
         } for r in rows
     ]
 

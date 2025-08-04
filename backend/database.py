@@ -10,7 +10,7 @@ if DATABASE_URL.startswith("postgresql://"):
     # PostgreSQL configuration
     engine = create_engine(DATABASE_URL)
 else:
-    # SQLite configuration (for local development)
+    # Fallback configuration (should not be used in production)
     engine = create_engine(
         DATABASE_URL, connect_args={"check_same_thread": False}
     )

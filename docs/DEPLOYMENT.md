@@ -201,9 +201,14 @@ ENVIRONMENT=production
 
 ### Database Setup
 
-For production, use PostgreSQL instead of SQLite:
+The application uses AWS PostgreSQL cloud database by default. For production deployments, you can use the same cloud database or set up your own PostgreSQL instance:
 
-1. **Add PostgreSQL service to docker-compose.yml**
+1. **Using the cloud database (recommended)**
+   ```env
+   DATABASE_URL=postgresql://postgres:UxI:dxl81yG]uBK:rU<U<sUdm5EZ@bluebank-db.ca76eoy2kz8t.us-east-1.rds.amazonaws.com:5432/postgres
+   ```
+
+2. **For custom PostgreSQL setup, add PostgreSQL service to docker-compose.yml**
    ```yaml
    services:
      postgres:
@@ -218,7 +223,7 @@ For production, use PostgreSQL instead of SQLite:
          - "5432:5432"
    ```
 
-2. **Update backend requirements.txt**
+3. **Update backend requirements.txt**
    ```
    psycopg2-binary==2.9.5
    ```

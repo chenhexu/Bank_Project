@@ -142,7 +142,6 @@ docker ps -a
 - FastAPI backend with automatic API documentation
 - Next.js frontend with TypeScript
 - **AWS PostgreSQL cloud database** for cross-computer access
-- SQLite database (local development fallback)
 - Email notifications (Gmail/SendGrid)
 - Health checks and monitoring
 - Hot reloading for development
@@ -213,10 +212,10 @@ The application will automatically create a `.env` file on first run, but you ca
 
 ```bash
 # Copy the environment template
-cp backend/.env.example backend/.env
+cp backend/env.template backend/.env
 
 # Edit the file with your settings
-# See backend/.env.example for all available options
+# See backend/env.template for all available options
 ```
 
 ### Required Environment Variables
@@ -229,9 +228,8 @@ GMAIL_APP_PASSWORD=your-app-password
 FACEBOOK_APP_ID=your-facebook-app-id
 FACEBOOK_APP_SECRET=your-facebook-app-secret
 
-# Database (Cloud PostgreSQL by default, SQLite for local dev)
-DATABASE_URL=postgresql://postgres:password@host:5432/database
-# For local development: DATABASE_URL=sqlite:///bank_users.db
+# Database (Cloud PostgreSQL by default)
+DATABASE_URL=postgresql://postgres:UxI:dxl81yG]uBK:rU<U<sUdm5EZ@bluebank-db.ca76eoy2kz8t.us-east-1.rds.amazonaws.com:5432/postgres
 ```
 
 ## Project Structure

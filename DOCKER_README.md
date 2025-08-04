@@ -29,7 +29,7 @@ open http://localhost:8080
 
 - **Frontend**: Next.js 14, React, Tailwind CSS
 - **Backend**: FastAPI, Python 3.11
-- **Database**: SQLite
+- **Database**: AWS PostgreSQL (cloud database)
 - **Authentication**: Google OAuth, Facebook OAuth
 - **Container**: Docker with Nginx
 

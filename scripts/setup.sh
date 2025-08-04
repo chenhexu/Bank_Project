@@ -50,8 +50,8 @@ if [ ! -f "backend/.env" ]; then
 GMAIL_EMAIL="your_gmail_email@gmail.com"
 GMAIL_APP_PASSWORD="your_gmail_app_password_here"
 
-# Database Configuration
-DATABASE_URL="sqlite:///./bank_users.db"
+# Database Configuration - Cloud PostgreSQL
+DATABASE_URL="postgresql://postgres:UxI:dxl81yG]uBK:rU<U<sUdm5EZ@bluebank-db.ca76eoy2kz8t.us-east-1.rds.amazonaws.com:5432/postgres"
 
 # Application Settings
 DEBUG=true
