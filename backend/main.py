@@ -140,15 +140,13 @@ def create_db():
             CREATE TABLE IF NOT EXISTS recovery_codes (
                 id SERIAL PRIMARY KEY,
                 email VARCHAR(255) NOT NULL,
-                code VARCHAR(255) NOT NULL,
+                recovery_code VARCHAR(255) NOT NULL,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 used BOOLEAN DEFAULT FALSE
             )
         ''')
         
         conn.commit()
-
-create_db()
 
 # Helpers
 def hash_password(password: str) -> str:
@@ -364,9 +362,9 @@ def record_transaction(username, type_, amount, old_balance, new_balance, other_
         description = f"to {other_user}" if other_user and type_ == "Transfer Out" else f"from {other_user}" if other_user and type_ == "Transfer In" else ""
         placeholder = get_placeholder()
         cursor.execute(f'''
-            INSERT INTO transactions (username, type, amount, old_balance, new_balance, timestamp, description, other_user)
-            VALUES ({placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder})
-        ''', (username, type_, str(amount), str(old_balance), str(new_balance), datetime.now().strftime('%Y-%m-%d %H:%M:%S'), description, other_user))
+            INSERT INTO transactions (username, type, amount, old_balance, new_balance, timestamp, description)
+            VALUES ({placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder})
+        ''', (username, type_, str(amount), str(old_balance), str(new_balance), datetime.now().strftime('%Y-%m-%d %H:%M:%S'), description))
         conn.commit()
 
 def send_welcome_email(to_email, display_name):
@@ -410,10 +408,10 @@ def create_recovery_code(email: str) -> str:
         cursor = conn.cursor()
         placeholder = get_placeholder()
         # Mark any existing codes as used
-        cursor.execute(f"UPDATE recovery_codes SET used = TRUE WHERE email = {placeholder}", (email,))
+        cursor.execute(f"UPDATE recovery_codes SET used = 1 WHERE email = {placeholder}", (email,))
         # Insert new recovery code
         cursor.execute(
-            f"INSERT INTO recovery_codes (email, code, created_at) VALUES ({placeholder}, {placeholder}, {placeholder})",
+            f"INSERT INTO recovery_codes (email, recovery_code, created_at) VALUES ({placeholder}, {placeholder}, {placeholder})",
             (email, recovery_code, datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
         )
         conn.commit()
@@ -425,7 +423,7 @@ def validate_recovery_code(email: str, recovery_code: str) -> bool:
         cursor = conn.cursor()
         placeholder = get_placeholder()
         cursor.execute(
-            f"SELECT id FROM recovery_codes WHERE email = {placeholder} AND code = {placeholder} AND used = FALSE",
+            f"SELECT id FROM recovery_codes WHERE email = {placeholder} AND recovery_code = {placeholder} AND used = 0",
             (email, recovery_code)
         )
         return cursor.fetchone() is not None
@@ -436,7 +434,7 @@ def mark_recovery_code_used(email: str, recovery_code: str):
         cursor = conn.cursor()
         placeholder = get_placeholder()
         cursor.execute(
-            f"UPDATE recovery_codes SET used = TRUE WHERE email = {placeholder} AND code = {placeholder}",
+            f"UPDATE recovery_codes SET used = 1 WHERE email = {placeholder} AND recovery_code = {placeholder}",
             (email, recovery_code)
         )
         conn.commit()
@@ -671,7 +669,7 @@ def transactions_post(data: TransactionsRequest):
             raise HTTPException(status_code=404, detail="User not found")
         username = row[0]
         
-        cursor.execute("SELECT type, amount, old_balance, new_balance, timestamp, description, other_user FROM transactions WHERE username = %s ORDER BY id DESC", (username,))
+        cursor.execute("SELECT type, amount, old_balance, new_balance, timestamp, description FROM transactions WHERE username = %s ORDER BY id DESC", (username,))
         rows = cursor.fetchall()
 
     return [
@@ -681,8 +679,7 @@ def transactions_post(data: TransactionsRequest):
             "old_balance": r[2],
             "new_balance": r[3],
             "timestamp": r[4],
-            "description": r[5],
-            "other_user": r[6]
+            "description": r[5]
         } for r in rows
     ]
 
