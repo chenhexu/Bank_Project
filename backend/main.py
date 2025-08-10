@@ -65,6 +65,10 @@ class User(BaseModel):
     password: str
     display_name: str = ""
     username: str
+    dob_month: str = ""
+    dob_day: str = ""
+    dob_year: str = ""
+    phone: str = ""
 
 class LoginRequest(BaseModel):
     email: str
@@ -117,7 +121,11 @@ def create_db():
                 email VARCHAR(255) UNIQUE NOT NULL,
                 display_name VARCHAR(255),
                 password VARCHAR(255) NOT NULL,
-                balance DECIMAL(10,2) NOT NULL DEFAULT 0.00
+                balance DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+                dob_month VARCHAR(10),
+                dob_day VARCHAR(10),
+                dob_year VARCHAR(10),
+                phone VARCHAR(20)
             )
         ''')
         
@@ -278,7 +286,7 @@ def register(user: User):
         with get_db_connection() as conn:
             cursor = conn.cursor()
             placeholder = get_placeholder()
-            cursor.execute(f"INSERT INTO users (username, email, display_name, password) VALUES ({placeholder}, {placeholder}, {placeholder}, {placeholder})", (user.username, user.email, user.display_name, hashed_pw))
+            cursor.execute(f"INSERT INTO users (username, email, display_name, password, dob_month, dob_day, dob_year, phone) VALUES ({placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder})", (user.username, user.email, user.display_name, hashed_pw, user.dob_month, user.dob_day, user.dob_year, user.phone))
             conn.commit()
         print(f"[DEBUG] Register success: email={user.email}")
         try:
