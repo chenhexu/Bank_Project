@@ -12,8 +12,6 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from dotenv import load_dotenv
 import os
-import requests
-import json
 import psycopg2
 from contextlib import contextmanager
 # Load environment variables
@@ -39,10 +37,19 @@ app.add_middleware(
 @contextmanager
 def get_db_connection():
     """Get database connection (PostgreSQL only)"""
-    database_url = os.getenv("DATABASE_URL", "postgresql://postgres:UxI:dxl81yG]uBK:rU<U<sUdm5EZ@bluebank-db.ca76eoy2kz8t.us-east-1.rds.amazonaws.com:5432/postgres")
+    from urllib.parse import quote_plus
     
-    # Use PostgreSQL
-    conn = psycopg2.connect(database_url)
+    # URL-encode the password to handle special characters
+    password = "aCzZ34x0:f~1Q[]E!o9Fb#okaj5i"
+    encoded_password = quote_plus(password)
+    
+    database_url = os.getenv("DATABASE_URL", f"postgresql://postgres:{encoded_password}@bluebank-db.ca76eoy2kz8t.us-east-1.rds.amazonaws.com:5432/postgres")
+    
+    # Use PostgreSQL with basic SSL
+    conn = psycopg2.connect(
+        database_url,
+        sslmode='prefer'
+    )
     try:
         yield conn
     finally:
@@ -63,11 +70,7 @@ class LoginRequest(BaseModel):
     email: str
     password: str
 
-class GoogleAuthRequest(BaseModel):
-    access_token: str
 
-class FacebookAuthRequest(BaseModel):
-    access_token: str
 
 class TransactionRequest(BaseModel):
     email: str
@@ -114,9 +117,7 @@ def create_db():
                 email VARCHAR(255) UNIQUE NOT NULL,
                 display_name VARCHAR(255),
                 password VARCHAR(255) NOT NULL,
-                balance DECIMAL(10,2) NOT NULL DEFAULT 0.00,
-                google_id VARCHAR(255),
-                auth_provider VARCHAR(50) DEFAULT 'email'
+                balance DECIMAL(10,2) NOT NULL DEFAULT 0.00
             )
         ''')
         
@@ -159,183 +160,12 @@ def authenticate(email: str, password: str):
     with get_db_connection() as conn:
         cursor = conn.cursor()
         placeholder = get_placeholder()
-        cursor.execute(f"SELECT password, auth_provider FROM users WHERE email = {placeholder}", (email,))
+        cursor.execute(f"SELECT password FROM users WHERE email = {placeholder}", (email,))
         row = cursor.fetchone()
     if row:
-        hashed_password, auth_provider = row
-        # For Google users, accept the special password
-        if auth_provider == 'google' and password == 'google_auth':
-            return True
-        # For Facebook users, accept the special password
-        elif auth_provider == 'facebook' and password == 'facebook_auth':
-            return True
-        # For regular users, verify password
-        elif auth_provider == 'email' or auth_provider is None:
-            return verify_password(password, hashed_password)
+        hashed_password = row[0]
+        return verify_password(password, hashed_password)
     return False
-
-def verify_google_token(id_token: str):
-    """Verify Google ID token and get user info"""
-    try:
-        import jwt
-        import requests
-        import json
-        
-        print(f"[DEBUG] Attempting to verify Google ID token...")
-        print(f"[DEBUG] Token length: {len(id_token)}")
-        print(f"[DEBUG] Token starts with: {id_token[:50]}...")
-        
-        # Get Google's public keys
-        response = requests.get('https://www.googleapis.com/oauth2/v1/certs')
-        if response.status_code != 200:
-            print(f"[DEBUG] Failed to get Google public keys: {response.status_code}")
-            return None
-            
-        certs = response.json()
-        print(f"[DEBUG] Got {len(certs)} public keys from Google")
-        
-        # Get the token header to find the key ID
-        try:
-            header = jwt.get_unverified_header(id_token)
-            key_id = header.get('kid')
-            print(f"[DEBUG] Token key ID: {key_id}")
-        except Exception as e:
-            print(f"[DEBUG] Failed to get token header: {e}")
-            return None
-        
-        # Find the matching key
-        if key_id not in certs:
-            print(f"[DEBUG] Key ID {key_id} not found in available keys")
-            return None
-            
-        jwk_key = certs[key_id]
-        print(f"[DEBUG] Found matching key for ID: {key_id}")
-        print(f"[DEBUG] JWK key type: {type(jwk_key)}")
-        print(f"[DEBUG] JWK key: {jwk_key}")
-        
-        # Try to decode without verification first to see the payload
-        try:
-            unverified_payload = jwt.decode(id_token, options={"verify_signature": False})
-            print(f"[DEBUG] Unverified payload: {unverified_payload}")
-            
-            # Extract user info from unverified payload (for testing)
-            user_info = {
-                'id': unverified_payload.get('sub'),
-                'email': unverified_payload.get('email'),
-                'name': unverified_payload.get('name', ''),
-                'given_name': unverified_payload.get('given_name', ''),
-                'family_name': unverified_payload.get('family_name', ''),
-                'picture': unverified_payload.get('picture', '')
-            }
-            
-            print(f"[DEBUG] Successfully extracted user info: {user_info['email']}")
-            return user_info
-            
-        except Exception as e:
-            print(f"[DEBUG] Failed to decode token even without verification: {e}")
-            return None
-        
-    except Exception as e:
-        print(f"[DEBUG] Google token verification error: {e}")
-        print(f"[DEBUG] Error type: {type(e).__name__}")
-        import traceback
-        print(f"[DEBUG] Full traceback: {traceback.format_exc()}")
-        return None
-
-def verify_facebook_token(access_token: str):
-    """Verify Facebook access token and get user info"""
-    try:
-        import requests
-        
-        print(f"[DEBUG] Attempting to verify Facebook access token...")
-        
-        # Get user info from Facebook Graph API
-        response = requests.get(
-            f"https://graph.facebook.com/me?fields=id,name,email&access_token={access_token}"
-        )
-        
-        if response.status_code != 200:
-            print(f"[DEBUG] Facebook API error: {response.status_code}")
-            return None
-            
-        user_info = response.json()
-        print(f"[DEBUG] Facebook user info: {user_info}")
-        
-        # Extract user info
-        facebook_user_info = {
-            'id': user_info.get('id'),
-            'email': user_info.get('email'),
-            'name': user_info.get('name', ''),
-            'given_name': user_info.get('name', '').split(' ')[0] if user_info.get('name') else '',
-            'family_name': ' '.join(user_info.get('name', '').split(' ')[1:]) if user_info.get('name') else '',
-            'picture': f"https://graph.facebook.com/{user_info.get('id')}/picture?type=large"
-        }
-        
-        print(f"[DEBUG] Successfully verified Facebook token for: {facebook_user_info['email']}")
-        return facebook_user_info
-        
-    except Exception as e:
-        print(f"[DEBUG] Facebook token verification error: {e}")
-        print(f"[DEBUG] Error type: {type(e).__name__}")
-        import traceback
-        print(f"[DEBUG] Full traceback: {traceback.format_exc()}")
-        return None
-
-def get_or_create_google_user(google_user_info):
-    """Get existing user or create new user from Google info"""
-    email = google_user_info.get('email')
-    google_id = google_user_info.get('id')
-    display_name = google_user_info.get('name', '')
-    
-    with get_db_connection() as conn:
-        cursor = conn.cursor()
-        
-        # Check if user exists
-        cursor.execute("SELECT username, display_name FROM users WHERE email = %s", (email,))
-        existing_user = cursor.fetchone()
-        
-        if existing_user:
-            # Update Google ID if not set
-            cursor.execute("UPDATE users SET google_id = %s, auth_provider = 'google' WHERE email = %s", (google_id, email))
-            conn.commit()
-            return {"username": existing_user[0], "email": email, "display_name": existing_user[1] or display_name}
-        else:
-            # Create new user
-            username = f"user_{google_id[-8:]}"  # Use last 8 chars of Google ID
-            cursor.execute(
-                "INSERT INTO users (username, email, display_name, password, google_id, auth_provider) VALUES (%s, %s, %s, %s, %s, %s)",
-                (username, email, display_name, "google_auth", google_id, "google")
-            )
-            conn.commit()
-            return {"username": username, "email": email, "display_name": display_name}
-
-def get_or_create_facebook_user(facebook_user_info):
-    """Get existing user or create new user from Facebook info"""
-    email = facebook_user_info.get('email')
-    facebook_id = facebook_user_info.get('id')
-    display_name = facebook_user_info.get('name', '')
-    
-    with get_db_connection() as conn:
-        cursor = conn.cursor()
-        
-        # Check if user exists
-        cursor.execute("SELECT username, display_name FROM users WHERE email = %s", (email,))
-        existing_user = cursor.fetchone()
-        
-        if existing_user:
-            # Update Facebook ID if not set
-            cursor.execute("UPDATE users SET google_id = %s, auth_provider = 'facebook' WHERE email = %s", (facebook_id, email))
-            conn.commit()
-            return {"username": existing_user[0], "email": email, "display_name": existing_user[1] or display_name}
-        else:
-            # Create new user
-            username = f"user_{facebook_id[-8:]}"  # Use last 8 chars of Facebook ID
-            cursor.execute(
-                "INSERT INTO users (username, email, display_name, password, google_id, auth_provider) VALUES (%s, %s, %s, %s, %s, %s)",
-                (username, email, display_name, "facebook_auth", facebook_id, "facebook")
-            )
-            conn.commit()
-            return {"username": username, "email": email, "display_name": display_name}
 
 def get_balance(username: str) -> Decimal:
     with get_db_connection() as conn:
@@ -471,43 +301,7 @@ def login(user: LoginRequest):
     print(f"[DEBUG] Login failed: email={user.email}")
     raise HTTPException(status_code=401, detail="Invalid credentials")
 
-@app.post("/google-auth")
-def google_auth(data: GoogleAuthRequest):
-    """Handle Google OAuth authentication"""
-    print(f"[DEBUG] Google auth attempt")
-    
-    # Verify Google token
-    google_user_info = verify_google_token(data.access_token)
-    if not google_user_info:
-        raise HTTPException(status_code=401, detail="Invalid Google token")
-    
-    # Get or create user
-    user_info = get_or_create_google_user(google_user_info)
-    
-    print(f"[DEBUG] Google auth success: email={user_info['email']}")
-    return {
-        "message": "Google authentication successful",
-        "user": user_info
-    }
 
-@app.post("/facebook-auth")
-def facebook_auth(data: FacebookAuthRequest):
-    """Handle Facebook OAuth authentication"""
-    print(f"[DEBUG] Facebook auth attempt")
-    
-    # Verify Facebook token
-    facebook_user_info = verify_facebook_token(data.access_token)
-    if not facebook_user_info:
-        raise HTTPException(status_code=401, detail="Invalid Facebook token")
-    
-    # Get or create user
-    user_info = get_or_create_facebook_user(facebook_user_info)
-    
-    print(f"[DEBUG] Facebook auth success: email={user_info['email']}")
-    return {
-        "message": "Facebook authentication successful",
-        "user": user_info
-    }
 
 @app.post("/deposit")
 def deposit(data: TransactionRequest):
@@ -785,6 +579,14 @@ def reset_password(data: ResetPasswordRequest):
     mark_recovery_code_used(data.email, data.recovery_code)
     
     return {"message": "Password reset successfully"}
+
+@app.get("/user-count")
+def user_count():
+    with get_db_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute("SELECT COUNT(*) FROM users")
+        count = cursor.fetchone()[0]
+    return {"count": count}
 
 @app.get("/")
 def health_check():

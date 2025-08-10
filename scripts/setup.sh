@@ -39,7 +39,7 @@ if [ ! -f "backend/.env" ]; then
     if [ -f "backend/env.template" ]; then
         cp backend/env.template backend/.env
         echo "✅ Environment file created from template"
-        echo "💡 You can edit backend/.env to configure email and OAuth settings"
+        echo "💡 You can edit backend/.env to configure email settings"
     else
         echo "⚠️  No env.template found, creating basic .env file"
         cat > backend/.env << EOF
@@ -51,7 +51,7 @@ GMAIL_EMAIL="your_gmail_email@gmail.com"
 GMAIL_APP_PASSWORD="your_gmail_app_password_here"
 
 # Database Configuration - Cloud PostgreSQL
-DATABASE_URL="postgresql://postgres:UxI:dxl81yG]uBK:rU<U<sUdm5EZ@bluebank-db.ca76eoy2kz8t.us-east-1.rds.amazonaws.com:5432/postgres"
+DATABASE_URL="postgresql://postgres:aCzZ34x0:f~1Q[]E!o9Fb#okaj5i@bluebank-db.ca76eoy2kz8t.us-east-1.rds.amazonaws.com:5432/postgres"
 
 # Application Settings
 DEBUG=true

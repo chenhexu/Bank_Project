@@ -11,6 +11,7 @@ export default function WithdrawPage() {
   const [password, setPassword] = useState("");
   const [amount, setAmount] = useState("");
   const [message, setMessage] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -26,6 +27,8 @@ export default function WithdrawPage() {
 
   const handleWithdraw = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isLoading) return; // Prevent double submission
+    setIsLoading(true);
     setMessage("");
     try {
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/withdraw`, {
@@ -41,6 +44,8 @@ export default function WithdrawPage() {
       }, 1000);
     } catch (err: any) {
       setMessage(`❌ ${err.message}`);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -62,7 +67,19 @@ export default function WithdrawPage() {
             onWheel={(e) => (e.target as HTMLInputElement).blur()}
             className={`px-4 py-3 rounded-xl border focus:ring-2 outline-none text-lg no-spinner ${isDarkMode ? 'border-gray-600 focus:border-blue-400 focus:ring-blue-900 text-white bg-gray-700' : 'border-blue-200 focus:border-blue-500 focus:ring-blue-100 text-gray-900 bg-white'}`} 
           />
-          <button type="submit" className={`w-full py-3 rounded-xl font-semibold text-lg shadow transition mt-2 text-white ${isDarkMode ? 'bg-blue-500 hover:bg-blue-600' : 'bg-blue-600 hover:bg-blue-700'}`}>Withdraw</button>
+          <button 
+            type="submit" 
+            disabled={isLoading}
+            className={`w-full py-3 rounded-xl font-semibold text-lg shadow transition mt-2 text-white ${
+              isLoading 
+                ? 'bg-gray-400 cursor-not-allowed' 
+                : isDarkMode 
+                  ? 'bg-blue-500 hover:bg-blue-600' 
+                  : 'bg-blue-600 hover:bg-blue-700'
+            }`}
+          >
+            {isLoading ? 'Processing...' : 'Withdraw'}
+          </button>
         </form>
         {message && <div className={`mt-4 text-center text-sm ${isDarkMode ? 'text-blue-300' : 'text-blue-500'}`}>{message}</div>}
         <div className={`mt-6 text-sm flex gap-4 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>

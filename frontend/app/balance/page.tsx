@@ -135,6 +135,51 @@ export default function BalancePage() {
     // eslint-disable-next-line
   }, [email, password, initialized]);
 
+  // Refresh balance when window gets focus (user returns from other pages)
+  useEffect(() => {
+    if (!email || !password || !initialized) return;
+    
+    const handleWindowFocus = () => {
+      console.log("Window focused, refreshing balance...");
+      // Refetch balance when window gets focus
+      const fetchBalanceOnFocus = async () => {
+        try {
+          const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/balance`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email, password }),
+          });
+          if (!res.ok) return;
+          const data = await res.json();
+          const newBalance = parseFloat(data.balance);
+          
+          if (newBalance !== balance) {
+            setAnimationFrom(balance);
+            setBalance(newBalance);
+          }
+        } catch (err) {
+          console.log("Balance refresh error:", err);
+        }
+      };
+      fetchBalanceOnFocus();
+    };
+
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        console.log("Page became visible, refreshing balance...");
+        handleWindowFocus(); // Reuse the same logic
+      }
+    };
+
+    window.addEventListener('focus', handleWindowFocus);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    return () => {
+      window.removeEventListener('focus', handleWindowFocus);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [email, password, initialized, balance]);
+
   // Check for new transfer notifications
   useEffect(() => {
     if (!email || !password) return;

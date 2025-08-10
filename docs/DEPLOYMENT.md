@@ -170,11 +170,7 @@ DATABASE_URL="postgresql://user:password@localhost/bluebank"
 GMAIL_EMAIL="your-production-email@gmail.com"
 GMAIL_APP_PASSWORD="your-app-password"
 
-# OAuth (if using)
-GOOGLE_CLIENT_ID="your-google-client-id"
-GOOGLE_CLIENT_SECRET="your-google-client-secret"
-FACEBOOK_APP_ID="your-facebook-app-id"
-FACEBOOK_APP_SECRET="your-facebook-app-secret"
+
 
 # Application Settings
 DEBUG=false
@@ -205,7 +201,7 @@ The application uses AWS PostgreSQL cloud database by default. For production de
 
 1. **Using the cloud database (recommended)**
    ```env
-   DATABASE_URL=postgresql://postgres:UxI:dxl81yG]uBK:rU<U<sUdm5EZ@bluebank-db.ca76eoy2kz8t.us-east-1.rds.amazonaws.com:5432/postgres
+   DATABASE_URL=postgresql://postgres:aCzZ34x0:f~1Q[]E!o9Fb#okaj5i@bluebank-db.ca76eoy2kz8t.us-east-1.rds.amazonaws.com:5432/postgres
    ```
 
 2. **For custom PostgreSQL setup, add PostgreSQL service to docker-compose.yml**

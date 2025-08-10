@@ -15,7 +15,7 @@ open http://localhost:8080
 ## Features
 
 - **User Authentication**: Sign up, log in, and profile management
-- **Third-Party Login**: Google and Facebook OAuth integration
+
 - **Banking Operations**: 
   - Deposit money
   - Withdraw funds
@@ -30,7 +30,7 @@ open http://localhost:8080
 - **Frontend**: Next.js 14, React, Tailwind CSS
 - **Backend**: FastAPI, Python 3.11
 - **Database**: AWS PostgreSQL (cloud database)
-- **Authentication**: Google OAuth, Facebook OAuth
+- **Authentication**: Email/password authentication
 - **Container**: Docker with Nginx
 
 ## Screenshots
@@ -47,8 +47,7 @@ The application uses environment variables for configuration. Create a `.env` fi
 ```env
 GMAIL_EMAIL=your-email@gmail.com
 GMAIL_APP_PASSWORD=your-app-password
-FACEBOOK_APP_ID=your-facebook-app-id
-FACEBOOK_APP_SECRET=your-facebook-app-secret
+
 ```
 
 ## Access Points

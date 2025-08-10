@@ -26,13 +26,22 @@ Bank_Project/
 │   ├── start.sh            # Linux/Mac startup script
 │   ├── start-dev.bat       # Windows development script
 │   ├── setup.ps1           # PowerShell setup script
-│   └── setup.sh            # Linux/Mac setup script
+│   ├── setup.sh            # Linux/Mac setup script
+│   ├── deploy-aws.ps1      # PowerShell AWS deployment script
+│   └── deploy-aws.sh       # Linux/Mac AWS deployment script
 │
 ├── 📁 docs/                 # Documentation
 │   ├── DEPLOYMENT.md        # Deployment instructions
-│   ├── GOOGLE_OAUTH_SETUP.md # OAuth configuration guide
+│   ├── AWS_DEPLOYMENT.md    # AWS Elastic Beanstalk deployment guide
+│   ├── AWS_SETUP_CHECKLIST.md # AWS setup checklist
 │   └── QUICK_START.md       # Quick start guide
 │
+├── 📁 .ebextensions/        # AWS Elastic Beanstalk configuration
+│   ├── 01_environment.config # Environment and system settings
+│   ├── 02_application.config # Application-specific settings
+│   └── 03_platform.config   # Platform-specific settings
+├── 📁 .elasticbeanstalk/    # Elastic Beanstalk application config
+│   └── config.yml           # EB application configuration
 ├── 📄 README.md             # Main project documentation
 ├── 📄 PROJECT_STRUCTURE.md  # This file
 ├── 📄 package.json          # Project metadata and scripts
@@ -63,6 +72,16 @@ scripts/start-dev.bat
 npm run dev
 ```
 
+### AWS Cloud Deployment
+```bash
+# Windows (PowerShell)
+.\scripts\deploy-aws.ps1
+
+# Linux/Mac
+chmod +x scripts/deploy-aws.sh
+./scripts/deploy-aws.sh
+```
+
 ### Stop the Application
 ```bash
 # Using npm
@@ -81,6 +100,8 @@ docker-compose -f docker/docker-compose.yml down
 ### Configuration
 - **docker/**: Docker Compose configurations
 - **scripts/**: Automation scripts for different platforms
+- **.ebextensions/**: AWS Elastic Beanstalk configuration files
+- **.elasticbeanstalk/**: Elastic Beanstalk application settings
 
 ### Documentation
 - **docs/**: Detailed guides and setup instructions

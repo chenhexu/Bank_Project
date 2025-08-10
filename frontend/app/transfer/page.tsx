@@ -12,6 +12,7 @@ export default function TransferPage() {
   const [recipientEmail, setRecipientEmail] = useState("");
   const [amount, setAmount] = useState("");
   const [message, setMessage] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -27,6 +28,7 @@ export default function TransferPage() {
 
   const handleTransfer = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isLoading) return; // Prevent double submission
     setMessage("");
     
     if (!recipientEmail.trim()) {
@@ -39,6 +41,7 @@ export default function TransferPage() {
       return;
     }
 
+    setIsLoading(true);
     try {
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/transfer`, {
         method: "POST",
@@ -58,6 +61,8 @@ export default function TransferPage() {
       }, 2000);
     } catch (err: any) {
       setMessage(`❌ ${err.message}`);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -96,9 +101,16 @@ export default function TransferPage() {
           </div>
           <button 
             type="submit" 
-            className={`w-full py-3 rounded-xl font-semibold text-lg shadow transition mt-2 text-white ${isDarkMode ? 'bg-green-500 hover:bg-green-600' : 'bg-green-600 hover:bg-green-700'}`}
+            disabled={isLoading}
+            className={`w-full py-3 rounded-xl font-semibold text-lg shadow transition mt-2 text-white ${
+              isLoading 
+                ? 'bg-gray-400 cursor-not-allowed' 
+                : isDarkMode 
+                  ? 'bg-green-500 hover:bg-green-600' 
+                  : 'bg-green-600 hover:bg-green-700'
+            }`}
           >
-            Transfer Money
+            {isLoading ? 'Processing...' : 'Transfer Money'}
           </button>
         </form>
         {message && <div className={`mt-4 text-center text-sm ${isDarkMode ? 'text-blue-300' : 'text-blue-500'}`}>{message}</div>}

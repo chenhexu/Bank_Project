@@ -4,7 +4,7 @@ from sqlalchemy.orm import sessionmaker
 from .models import Base
 
 # Database URL configuration - default to cloud PostgreSQL
-DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://postgres:UxI:dxl81yG]uBK:rU<U<sUdm5EZ@bluebank-db.ca76eoy2kz8t.us-east-1.rds.amazonaws.com:5432/postgres")
+DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://postgres:aCzZ34x0:f~1Q[]E!o9Fb#okaj5i@bluebank-db.ca76eoy2kz8t.us-east-1.rds.amazonaws.com:5432/postgres")
 
 if DATABASE_URL.startswith("postgresql://"):
     # PostgreSQL configuration

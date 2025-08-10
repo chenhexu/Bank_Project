@@ -1,6 +1,6 @@
 # BlueBank - Modern Banking Application
 
-A full-stack banking application built with FastAPI, Next.js, and Docker. Features include user authentication, banking operations, OAuth integration, and a modern responsive UI. **Now with AWS PostgreSQL cloud database for cross-computer transfers!**
+A full-stack banking application built with FastAPI, Next.js, and Docker. Features include user authentication, banking operations, and a modern responsive UI. **Now with AWS PostgreSQL cloud database for cross-computer transfers!**
 
 ## 🌟 New Features (Latest Update)
 
@@ -21,9 +21,28 @@ docker run -d -p 8080:80 --name bluebank chenhexu/bluebank:latest
 # Both computers will share the same database and can transfer money between each other!
 ```
 
+### ☁️ AWS Cloud Platform
+- **Global Accessibility**: Access your bank from anywhere in the world
+- **Professional Hosting**: Enterprise-grade infrastructure with 99.9% uptime
+- **Auto-scaling**: Automatically handles traffic spikes and user growth
+- **Cost Effective**: Only ~$7.30/month for hosting (total ~$22.30/month with database)
+- **Easy Updates**: One-command deployment for new features and bug fixes
+
 ## Quick Start
 
-### Option 1: Docker Hub (Recommended)
+### Option 1: AWS Cloud Deployment (Recommended) 🌟
+```bash
+# Deploy to AWS Elastic Beanstalk
+# Windows (PowerShell):
+.\scripts\deploy-aws.ps1
+
+# Linux/macOS:
+chmod +x scripts/deploy-aws.sh
+./scripts/deploy-aws.sh
+```
+**See [AWS Deployment Guide](docs/AWS_DEPLOYMENT.md) for detailed instructions.**
+
+### Option 2: Docker Hub (Local)
 ```bash
 # Run directly from Docker Hub
 docker run -d -p 8080:80 --name bluebank chenhexu/bluebank:latest
@@ -32,56 +51,26 @@ docker run -d -p 8080:80 --name bluebank chenhexu/bluebank:latest
 open http://localhost:8080
 ```
 
-### Option 2: Different Port (if port 80 is busy)
-```bash
-# Run on port 8080
-docker run -d -p 8080:80 --name bluebank chenhexu/bluebank:latest
-
-# Access the application
-open http://localhost:8080
-```
-
-### Option 3: Start Existing Container
-```bash
-# If container already exists but is stopped
-docker start bluebank
-
-# Access the application
-open http://localhost:8080
-```
-
-### Option 4: Remove and Recreate Container
-```bash
-# Remove old container and create fresh one
-docker rm -f bluebank
-docker run -d -p 8080:80 --name bluebank chenhexu/bluebank:latest
-
-# Access the application
-open http://localhost:8080
-```
-
-### Option 5: Local Development
+### Option 3: Local Development
 ```bash
 # 1. Clone the repository
 git clone https://github.com/chenhexu/Bank_Project.git
 cd Bank_Project
 
 # 2. Start the application
+# Backend:
+cd backend && python -m uvicorn main:app --reload --host 0.0.0.0 --port 8000
+
+# Frontend (in another terminal):
+cd frontend && npm run dev
+
+# Or using scripts:
 # Windows:
 scripts/start.bat
 
 # Linux/Mac:
 chmod +x scripts/start.sh
 ./scripts/start.sh
-
-# Or using npm:
-npm start
-```
-
-### Option 6: Using npm Scripts
-```bash
-# If you have the project locally
-npm start
 ```
 
 ### Access the Application
@@ -114,10 +103,15 @@ docker ps -a
 
 ## Features
 
+### ☁️ Cloud Deployment
+- **AWS Elastic Beanstalk**: Professional cloud hosting platform
+- **Global Access**: Available from anywhere with internet connection
+- **Auto-scaling**: Handles traffic automatically
+- **99.9% Uptime**: Enterprise-grade reliability
+- **Easy Management**: Simple deployment and updates
+
 ### Authentication
 - Email/password registration and login
-- Google OAuth integration
-- Facebook OAuth integration
 - Password recovery via email
 - Session management
 
@@ -224,12 +218,10 @@ cp backend/env.template backend/.env
 GMAIL_EMAIL=your-email@gmail.com
 GMAIL_APP_PASSWORD=your-app-password
 
-# OAuth Configuration (optional)
-FACEBOOK_APP_ID=your-facebook-app-id
-FACEBOOK_APP_SECRET=your-facebook-app-secret
+
 
 # Database (Cloud PostgreSQL by default)
-DATABASE_URL=postgresql://postgres:UxI:dxl81yG]uBK:rU<U<sUdm5EZ@bluebank-db.ca76eoy2kz8t.us-east-1.rds.amazonaws.com:5432/postgres
+DATABASE_URL=postgresql://postgres:aCzZ34x0:f~1Q[]E!o9Fb#okaj5i@bluebank-db.ca76eoy2kz8t.us-east-1.rds.amazonaws.com:5432/postgres
 ```
 
 ## Project Structure
@@ -255,7 +247,7 @@ Bank_Project/
 │   └── setup.ps1          # PowerShell setup
 ├── docs/                   # Documentation
 │   ├── DEPLOYMENT.md      # Deployment guide
-│   ├── GOOGLE_OAUTH_SETUP.md # OAuth setup
+
 │   └── QUICK_START.md     # Quick start guide
 ├── Dockerfile              # Single image build
 ├── nginx.conf              # Nginx configuration
@@ -350,6 +342,20 @@ docker push chenhexu/bluebank:latest
 ```
 
 ### Cloud Deployment
+
+#### 🌟 AWS Elastic Beanstalk (Recommended)
+```bash
+# Deploy to AWS cloud platform
+# Windows (PowerShell):
+.\scripts\deploy-aws.ps1
+
+# Linux/macOS:
+chmod +x scripts/deploy-aws.sh
+./scripts/deploy-aws.sh
+```
+**Cost**: ~$7.30/month for hosting + $15/month for database = **~$22.30/month total**
+
+#### Other Options
 1. **Google Cloud Run**: Perfect for serverless deployment
 2. **AWS ECS**: For container orchestration
 3. **Azure Container Instances**: For simple container deployment
@@ -369,8 +375,7 @@ export GMAIL_APP_PASSWORD=your-production-app-password
 ### Authentication
 - `POST /register` - User registration
 - `POST /login` - User login
-- `POST /google-auth` - Google OAuth
-- `POST /facebook-auth` - Facebook OAuth
+
 
 ### Banking Operations
 - `POST /deposit` - Deposit funds
@@ -389,7 +394,7 @@ export GMAIL_APP_PASSWORD=your-production-app-password
 ### Manual Testing
 1. Register a new account
 2. Test banking operations (deposit, withdraw, transfer)
-3. Try OAuth login options (Google, Facebook)
+3. Test the banking operations
 4. Test password recovery
 5. Explore dark mode toggle
 6. Test notification system
@@ -438,7 +443,7 @@ If you encounter issues:
 Once everything is running:
 - Register a new account
 - Test the banking features
-- Try the OAuth login options
+
 - Explore the dark mode toggle
 - Check out the transaction history
 - Test the notification system
