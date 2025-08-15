@@ -37,18 +37,18 @@ app.add_middleware(
 @contextmanager
 def get_db_connection():
     """Get database connection (PostgreSQL only)"""
-    from urllib.parse import quote_plus
+    # Get database URL from environment variable
+    database_url = os.getenv("DATABASE_URL")
     
-    # URL-encode the password to handle special characters
-    password = "aCzZ34x0:f~1Q[]E!o9Fb#okaj5i"
-    encoded_password = quote_plus(password)
+    if not database_url:
+        raise Exception("DATABASE_URL environment variable is not set. Please configure your database connection.")
     
-    database_url = os.getenv("DATABASE_URL", f"postgresql://postgres:{encoded_password}@bluebank-db.ca76eoy2kz8t.us-east-1.rds.amazonaws.com:5432/postgres")
-    
-    # Use PostgreSQL with basic SSL
+    # Use PostgreSQL with proper SSL and connection settings for AWS RDS
     conn = psycopg2.connect(
         database_url,
-        sslmode='prefer'
+        sslmode='require',  # Force SSL for AWS RDS
+        connect_timeout=30,  # 30 second timeout
+        options='-c statement_timeout=60000'  # 60 second statement timeout
     )
     try:
         yield conn
@@ -498,6 +498,11 @@ def get_profile(data: ProfileRequest):
         return {"username": row[0], "email": row[1], "display_name": row[2]}
     else:
         raise HTTPException(status_code=404, detail="User not found")
+
+@app.post("/forgot-password")
+def forgot_password(data: RecoveryPasswordRequest):
+    """Forgot password endpoint - generates recovery code"""
+    return generate_recovery_code_endpoint(data)
 
 @app.post("/generate-recovery-code")
 def generate_recovery_code_endpoint(data: RecoveryPasswordRequest):

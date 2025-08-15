@@ -451,7 +451,7 @@ export default function BalancePage() {
               isDarkMode ? 'text-blue-300' : 'text-blue-400'
             }`}>No transactions found.</p>
           ) : (
-            <ul className={`space-y-3 max-h-96 overflow-y-auto border rounded-xl p-4 ${
+            <ul className={`space-y-3 max-h-96 overflow-y-auto custom-scrollbar border rounded-xl p-4 ${
               isDarkMode ? 'bg-gray-700 border-gray-600' : 'bg-blue-50 border-blue-200'
             }`}>
               {transactions.map((tx, idx) => {
@@ -530,7 +530,7 @@ export default function BalancePage() {
           
           {/* Notification Panel */}
           {showNotifications && (
-            <div className={`absolute bottom-16 right-0 w-80 max-h-96 overflow-y-auto rounded-xl shadow-xl border ${
+            <div className={`absolute bottom-16 right-0 w-80 max-h-96 overflow-y-auto custom-scrollbar rounded-xl shadow-xl border ${
               isDarkMode 
                 ? 'bg-gray-800 border-gray-600' 
                 : 'bg-white border-blue-200'

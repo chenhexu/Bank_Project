@@ -2,9 +2,6 @@
 
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import PhoneInput from 'react-phone-input-2';
-import 'react-phone-input-2/lib/style.css';
-import './phone-input-custom.css';
 import { useDarkMode } from "../../contexts/DarkModeContext";
 
 function Modal({ open, onClose, title, value, onChange, onSave, type = "text" }) {
@@ -16,16 +13,15 @@ function Modal({ open, onClose, title, value, onChange, onSave, type = "text" })
         <div className="text-xl font-bold mb-4">Edit {title}</div>
         {title === "Phone Number" ? (
           <div className="w-full min-w-[400px]">
-            <PhoneInput
-              country={'us'}
+            <input
+              type="tel"
               value={value}
-              onChange={onChange}
-              inputProps={{
-                name: 'phone',
-                required: false,
-                autoFocus: true,
-                placeholder: 'Phone number'
-              }}
+              onChange={e => onChange(e.target.value)}
+              name="phone"
+              required={false}
+              autoFocus={true}
+              placeholder="Phone number"
+              className="w-full px-4 py-3 rounded-xl border border-blue-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-lg mb-6"
             />
           </div>
         ) : (

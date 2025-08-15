@@ -2,8 +2,12 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useDarkMode } from "../../contexts/DarkModeContext";
 
 export default function ForgotPasswordPage() {
+  const { isDarkMode } = useDarkMode();
+  const router = useRouter();
   const [email, setEmail] = useState("");
   const [message, setMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -22,8 +26,12 @@ export default function ForgotPasswordPage() {
         body: JSON.stringify({ email }),
       });
 
-      if (res.ok) {
-        setMessage("✅ Password reset instructions sent to your email!");
+            if (res.ok) {
+        setMessage("✅ Recovery code sent to your email! Redirecting to reset password page...");
+        // Auto-redirect to reset password page with email pre-filled
+        setTimeout(() => {
+          router.push(`/reset-password?email=${encodeURIComponent(email)}`);
+        }, 2000);
       } else {
         const errorData = await res.json();
         setMessage(`❌ ${errorData.detail || "Failed to send reset email"}`);
@@ -36,41 +44,57 @@ export default function ForgotPasswordPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 p-4">
-      <div className="max-w-md w-full space-y-8">
-        <div className="text-center">
-          <h1 className="text-4xl font-bold text-blue-600 dark:text-blue-400 mb-2">
-            BlueBank
-          </h1>
-          <h2 className="text-2xl font-semibold text-gray-900 dark:text-white">
+    <div className={`min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 ${
+      isDarkMode 
+        ? 'bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900' 
+        : 'bg-gradient-to-br from-blue-100 via-white to-blue-200'
+    }`}>
+      <div className={`max-w-2xl w-full space-y-8 ${
+        isDarkMode 
+          ? 'bg-gray-800/90 shadow-xl rounded-3xl px-12 py-16' 
+          : 'bg-white/90 shadow-xl rounded-3xl px-12 py-16'
+      }`}>
+        <div>
+          <h2 className={`mt-6 text-center text-3xl font-extrabold ${
+            isDarkMode ? 'text-blue-400' : 'text-blue-600'
+          }`}>
             Reset your password
           </h2>
-          <p className="text-gray-600 dark:text-gray-400 mt-2">
-            Enter your email address and we'll send you a link to reset your password.
+          <p className={`mt-4 text-center text-base ${
+            isDarkMode ? 'text-gray-300' : 'text-gray-600'
+          }`}>
+            Enter your email address and we'll send you a recovery code to reset your password.
           </p>
         </div>
 
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-          <div>
-            <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-              Email address
-            </label>
-            <input
-              id="email"
-              name="email"
-              type="email"
-              autoComplete="email"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-              placeholder="Enter your email"
-            />
+        <form className="mt-8 space-y-8" onSubmit={handleSubmit}>
+          <div className="space-y-6">
+            <div>
+              <label htmlFor="email" className={`block text-base font-semibold ${
+                isDarkMode ? 'text-gray-300' : 'text-gray-700'
+              }`}>
+                Email <span className="text-red-500">*</span>
+              </label>
+              <input
+                id="email"
+                name="email"
+                type="email"
+                autoComplete="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className={`mt-2 block w-full px-4 py-4 border border-blue-300 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 hover:bg-blue-50 transition-colors duration-200 ${
+                  isDarkMode 
+                    ? 'border-blue-400 bg-gray-700 text-white hover:bg-blue-900/20' 
+                    : 'border-blue-300 bg-white text-gray-900 hover:bg-blue-50'
+                }`}
+              />
+            </div>
           </div>
 
           {message && (
             <div className={`text-center p-3 rounded-md ${
-              message.includes("✅") ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200" : "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200"
+              message.includes("✅") ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
             }`}>
               {message}
             </div>
@@ -79,17 +103,17 @@ export default function ForgotPasswordPage() {
           <button
             type="submit"
             disabled={isLoading}
-            className={`w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white ${
-              isLoading 
-                ? 'bg-gray-400 cursor-not-allowed' 
-                : 'bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500'
+            className={`w-full py-4 px-6 border border-blue-600 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 hover:bg-blue-100 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed ${
+              isDarkMode 
+                ? 'border-blue-400 bg-blue-600 text-white hover:bg-blue-700' 
+                : 'border-blue-600 bg-blue-600 text-white hover:bg-blue-700'
             }`}
           >
             {isLoading ? "Sending..." : "Send reset link"}
           </button>
 
           <div className="text-center">
-            <Link href="/login" className="text-sm text-blue-600 hover:text-blue-500 dark:text-blue-400 dark:hover:text-blue-300">
+            <Link href="/login" className={`text-sm hover:underline ${isDarkMode ? 'text-blue-400 hover:text-blue-300' : 'text-blue-600 hover:text-blue-500'}`}>
               Back to sign in
             </Link>
           </div>
