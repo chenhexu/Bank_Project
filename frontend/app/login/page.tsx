@@ -4,6 +4,8 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useDarkMode } from "../../contexts/DarkModeContext";
+import { useGoogleAuth } from "../../hooks/useGoogleAuth";
+import { useFacebookAuth } from "../../hooks/useFacebookAuth";
 
 export default function LoginPage() {
   const { isDarkMode } = useDarkMode();
@@ -12,6 +14,41 @@ export default function LoginPage() {
   const [message, setMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
+  const { isGoogleReady, isLoading: isGoogleLoading, signInWithGoogle, error: googleError, retryCount: googleRetryCount } = useGoogleAuth();
+  const { isFacebookReady, isLoading: isFacebookLoading, signInWithFacebook, requiresHttps } = useFacebookAuth();
+  
+  // Debug logging for OAuth state
+  console.log("🔵 Login page rendered with OAuth states:");
+  console.log("🔵 Google - isReady:", isGoogleReady, "isLoading:", isGoogleLoading);
+  console.log("🔵 Facebook - isReady:", isFacebookReady, "isLoading:", isFacebookLoading);
+  
+  // Handle URL parameters for error messages and email hints
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const urlParams = new URLSearchParams(window.location.search);
+      const errorParam = urlParams.get('error');
+      const messageParam = urlParams.get('message');
+      const emailParam = urlParams.get('email');
+      
+      if (errorParam) {
+        setMessage(`❌ ${decodeURIComponent(errorParam)}`);
+      } else if (messageParam) {
+        setMessage(`ℹ️ ${decodeURIComponent(messageParam)}`);
+      }
+      
+      if (emailParam) {
+        setEmail(decodeURIComponent(emailParam));
+        console.log('Pre-filled email from URL parameter');
+      }
+      
+      // Clear URL parameters after processing
+      if (errorParam || messageParam || emailParam) {
+        window.history.replaceState({}, '', window.location.pathname);
+      }
+    }
+  }, []);
+
+
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -40,15 +77,106 @@ export default function LoginPage() {
         const errorData = await res.json();
         setMessage(`❌ ${errorData.detail || "Login failed"}`);
       }
-    } catch (err: any) {
-      setMessage(`❌ ${err.message}`);
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : String(err);
+      setMessage(`❌ ${errorMessage}`);
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleOAuthLogin = (provider: string) => {
-    setMessage(`⚠️ ${provider} OAuth is not configured yet. Please use email/password login.`);
+  const handleGoogleLogin = async () => {
+    console.log("🔵 handleGoogleLogin called");
+    console.log("🔵 OAuth states:", { isGoogleReady, isGoogleLoading, googleError, googleRetryCount });
+    
+    // Show specific error if OAuth configuration failed
+    if (googleError) {
+      const errorMsg = `❌ Google OAuth Error: ${googleError}`;
+      setMessage(googleRetryCount > 0 ? `${errorMsg} (Retry ${googleRetryCount}/3)` : errorMsg);
+      return;
+    }
+    
+    if (!isGoogleReady || isGoogleLoading) {
+      console.log("🔴 Google OAuth not ready - isGoogleReady:", isGoogleReady, "isGoogleLoading:", isGoogleLoading);
+      setMessage("⚠️ Google OAuth is loading. Please wait...");
+      return;
+    }
+
+    console.log("🔵 handleGoogleLogin: Starting secure OAuth flow");
+    setMessage("🔄 Redirecting to Google for secure authentication...");
+    setIsLoading(true);
+
+    try {
+      console.log("🔵 handleGoogleLogin: About to call signInWithGoogle with enhanced security");
+      // signInWithGoogle now includes enhanced security validation
+      await signInWithGoogle();
+      
+      // This code will never be reached due to the redirect
+      console.log("🔵 handleGoogleLogin: This should not be reached due to redirect");
+      
+    } catch (error: unknown) {
+      console.error("Google login error:", error);
+      
+      // Provide specific error messages based on error type
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      if (errorMessage.includes('not ready')) {
+        setMessage("⚠️ Google OAuth is not ready yet. Please wait a moment and try again.");
+      } else if (errorMessage.includes('configuration')) {
+        setMessage("❌ Google OAuth configuration error. Please refresh the page or contact support.");
+      } else if (errorMessage.includes('network') || errorMessage.includes('connection')) {
+        setMessage("🌐 Network error. Please check your connection and try again.");
+      } else {
+        setMessage(`❌ Google sign-in failed: ${errorMessage || 'Unknown error'}. Please try again.`);
+      }
+      setIsLoading(false);
+    }
+  };
+
+  const handleFacebookLogin = async () => {
+    // Check if Facebook requires HTTPS
+    if (requiresHttps) {
+      setMessage("🔒 Facebook OAuth requires HTTPS. Please access the site using HTTPS to use Facebook login.");
+      return;
+    }
+
+    if (!isFacebookReady || isFacebookLoading) {
+      setMessage("⚠️ Facebook OAuth is loading. Please wait...");
+      return;
+    }
+
+    setMessage("");
+    setIsLoading(true);
+
+    try {
+      const result = await signInWithFacebook();
+      console.log("Facebook OAuth result:", result);
+      
+      if (result && result.user_profile) {
+        console.log("Facebook OAuth successful, storing user data:", result.user_profile);
+        
+        // Store user credentials for session
+        sessionStorage.setItem("email", result.user_profile.email);
+        sessionStorage.setItem("password", "FACEBOOK_OAUTH_USER_NO_PASSWORD"); // Special marker for OAuth users
+        
+        // Store user data in localStorage
+        localStorage.setItem("user", JSON.stringify(result));
+        
+        setMessage(`✅ ${result.message} Redirecting to your account...`);
+        console.log("Redirecting to balance page in 2 seconds...");
+        setTimeout(() => {
+          console.log("Executing redirect to /balance");
+          router.push("/balance");
+        }, 2000);
+      } else {
+        console.error("Facebook OAuth failed - no result or user_profile:", result);
+        setMessage("❌ Facebook sign-in failed. Please try again.");
+      }
+    } catch (error) {
+      console.error("Facebook login error:", error);
+      setMessage("❌ Facebook sign-in failed. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -74,8 +202,9 @@ export default function LoginPage() {
         <div className="space-y-4">
           <button
             type="button"
-            onClick={() => handleOAuthLogin("Google")}
-            className={`w-full flex justify-center items-center px-4 py-4 border border-blue-300 rounded-xl shadow-sm bg-white text-base font-medium text-gray-700 hover:bg-blue-50 transition-colors duration-200 ${
+            onClick={handleGoogleLogin}
+            disabled={!isGoogleReady || isGoogleLoading || isLoading}
+            className={`w-full flex justify-center items-center px-4 py-4 border border-blue-300 rounded-xl shadow-sm bg-white text-base font-medium text-gray-700 hover:bg-blue-50 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed ${
               isDarkMode 
                 ? 'border-blue-400 bg-gray-700 text-white hover:bg-blue-900/20' 
                 : 'border-blue-300 bg-white text-gray-900 hover:bg-blue-50'
@@ -87,13 +216,14 @@ export default function LoginPage() {
               <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
               <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
             </svg>
-            Sign in with Google
+            {isGoogleLoading ? "Loading Google..." : "Sign in with Google"}
           </button>
 
           <button
             type="button"
-            onClick={() => handleOAuthLogin("Facebook")}
-            className={`w-full flex justify-center items-center px-4 py-4 border border-blue-300 rounded-xl shadow-sm bg-white text-base font-medium text-gray-700 hover:bg-blue-50 transition-colors duration-200 ${
+            onClick={handleFacebookLogin}
+            disabled={!isFacebookReady || isFacebookLoading || isLoading || requiresHttps}
+            className={`w-full flex justify-center items-center px-4 py-4 border border-blue-300 rounded-xl shadow-sm bg-white text-base font-medium text-gray-700 hover:bg-blue-50 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed ${
               isDarkMode 
                 ? 'border-blue-400 bg-gray-700 text-white hover:bg-blue-900/20' 
                 : 'border-blue-300 bg-white text-gray-900 hover:bg-blue-50'
@@ -102,7 +232,7 @@ export default function LoginPage() {
             <svg className="w-5 h-5 mr-3" fill="#1877F2" viewBox="0 0 24 24">
               <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
             </svg>
-            Sign in with Facebook
+            {requiresHttps ? "🔒 Requires HTTPS" : isFacebookLoading ? "Loading Facebook..." : "Sign in with Facebook"}
           </button>
         </div>
 
@@ -166,7 +296,7 @@ export default function LoginPage() {
 
           {message && (
             <div className={`text-center p-3 rounded-md ${
-              message.includes("✅") ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
+              message.includes("✅") || message.includes("🔄") ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
             }`}>
               {message}
             </div>
@@ -185,16 +315,16 @@ export default function LoginPage() {
           </button>
 
           <div className="text-center">
-            <Link href="/forgot-password" className={`text-sm hover:underline ${isDarkMode ? 'text-blue-400 hover:text-blue-300' : 'text-blue-600 hover:text-blue-500'}`}>
+            <Link prefetch={false} href="/forgot-password" className={`text-sm hover:underline ${isDarkMode ? 'text-blue-400 hover:text-blue-300' : 'text-blue-600 hover:text-blue-500'}`}>
               Forgot your password?
             </Link>
           </div>
 
           <div className="text-center">
             <span className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-              Don't have an account?{" "}
+              Don&apos;t have an account?{" "}
             </span>
-            <Link href="/register" className={`text-sm font-medium hover:underline ${isDarkMode ? 'text-blue-400 hover:text-blue-300' : 'text-blue-600 hover:text-blue-500'}`}>
+            <Link prefetch={false} href="/register" className={`text-sm font-medium hover:underline ${isDarkMode ? 'text-blue-400 hover:text-blue-300' : 'text-blue-600 hover:text-blue-500'}`}>
               Sign up
             </Link>
           </div>

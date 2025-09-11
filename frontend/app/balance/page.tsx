@@ -4,6 +4,8 @@ import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import CounterScroller from "../../components/CounterScroller";
 import { useDarkMode } from "../../contexts/DarkModeContext";
+import { recoverOAuthSession, clearAllSessionData } from "../../utils/sessionRecovery";
+import { initSessionManager, stopSessionManager, SessionStatus } from "../../utils/sessionManager";
 
 type Transaction = {
   type: string;
@@ -19,23 +21,42 @@ export default function BalancePage() {
   const { isDarkMode } = useDarkMode();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [sessionStatus, setSessionStatus] = useState<SessionStatus | null>(null);
 
-  // On mount, get credentials from sessionStorage
+  // On mount, get credentials with robust session recovery
   useEffect(() => {
     if (typeof window !== "undefined") {
-      const storedEmail = sessionStorage.getItem('email') || '';
-      const storedPass = sessionStorage.getItem('password') || '';
-      setEmail(storedEmail);
-      setPassword(storedPass);
+      console.log("Balance page - Attempting session recovery...");
       
-      console.log("Balance page - Retrieved from sessionStorage:", {
-        email: storedEmail,
-        password: storedPass
-      });
+      // Try to recover session from multiple sources
+      const recovery = recoverOAuthSession();
       
-      if (!storedEmail || !storedPass) {
-        console.log("No credentials found, redirecting to login");
-        router.push('/login');
+      if (recovery.success && recovery.data) {
+        const { email: recoveredEmail, password: recoveredPassword } = recovery.data;
+        
+        console.log(`✅ Session recovered from ${recovery.source}:`, {
+          email: recoveredEmail,
+          password: recoveredPassword ? '***' : '',
+          hasAuthToken: !!recovery.data.authToken
+        });
+        
+        setEmail(recoveredEmail || '');
+        setPassword(recoveredPassword || '');
+      } else {
+        console.log(`❌ Session recovery failed (${recovery.source}): ${recovery.error}`);
+        
+        // Clear any corrupted session data
+        clearAllSessionData();
+        
+        // If partial recovery from localStorage, show helpful message
+        if (recovery.source === 'localStorage' && recovery.data?.email) {
+          console.log("Partial session found, redirecting with email hint");
+          router.push(`/login?email=${encodeURIComponent(recovery.data.email)}&message=Please sign in again`);
+        } else {
+          console.log("No recoverable session, redirecting to login");
+          router.push('/login?message=Session expired, please sign in again');
+        }
+        return;
       }
       
       // Dark mode is now handled by the context
@@ -59,6 +80,12 @@ export default function BalancePage() {
   const [showNotifications, setShowNotifications] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
+  // Helper function to get the correct password for API calls
+  const getPasswordForAPI = () => {
+    const isOAuthUser = password === 'GOOGLE_OAUTH_USER_NO_PASSWORD' || password === 'FACEBOOK_OAUTH_USER_NO_PASSWORD';
+    return isOAuthUser ? "google_oauth_token" : password;
+  };
+
   useEffect(() => {
     if (typeof window !== "undefined") {
       // Get current user's email for user-specific balance storage
@@ -76,7 +103,25 @@ export default function BalancePage() {
   // Fetch user profile data
   useEffect(() => {
     async function fetchProfile() {
-      if (!email || !password) return;
+      if (!email) return;
+      
+      const isOAuthUser = password === 'GOOGLE_OAUTH_USER_NO_PASSWORD' || password === 'FACEBOOK_OAUTH_USER_NO_PASSWORD';
+      
+      if (isOAuthUser) {
+        // For OAuth users, get display name from stored user profile
+        const userProfile = sessionStorage.getItem('user');
+        if (userProfile) {
+          try {
+            const user = JSON.parse(userProfile);
+            setDisplayName(user.display_name || user.email?.split('@')[0] || 'User');
+          } catch {
+            setDisplayName(email.split('@')[0]);
+          }
+        }
+        return;
+      }
+      
+      // For traditional users, fetch from backend
       try {
         const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/profile`, {
           method: "POST",
@@ -99,32 +144,48 @@ export default function BalancePage() {
     async function fetchBalance() {
       try {
         setLoading(true);
+        
         const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/balance`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email, password }),
+          body: JSON.stringify({ email, password: getPasswordForAPI() }),
         });
-        if (!res.ok) {
+        
+        if (res.ok) {
           const data = await res.json();
-          throw new Error(data.detail || "Failed to fetch balance");
-        }
-        const data = await res.json();
-        const newBalance = parseFloat(data.balance);
-
-        if (typeof window !== "undefined") {
-          // Get current user's email for user-specific balance storage
-          const currentUserEmail = sessionStorage.getItem('email');
-          const balanceKey = currentUserEmail ? `lastBalance_${currentUserEmail}` : 'lastBalance';
+          const newBalance = parseFloat(data.balance);
+          
+          // Store balance for this user
+          const balanceKey = `lastBalance_${email}`;
           sessionStorage.setItem(balanceKey, newBalance.toString());
-        }
-
-        setTimeout(() => {
+          
           setAnimationFrom(balance);
           setBalance(newBalance);
-        }, 400);
-      } catch (err: any) {
+          setError(null);
+          
+          // Show notification for balance changes
+          if (firstVisit) {
+            setFirstVisit(false);
+          } else if (prevBalanceRef.current !== newBalance) {
+            const change = newBalance - prevBalanceRef.current;
+            const notification = change > 0 
+              ? `💰 Balance increased by $${change.toFixed(2)}`
+              : `💸 Balance decreased by $${Math.abs(change).toFixed(2)}`;
+            
+            if (!notifications.includes(notification)) {
+              setNotifications(prev => [...prev, notification]);
+            }
+          }
+          
+          prevBalanceRef.current = newBalance;
+        } else {
+          const errorData = await res.json();
+          throw new Error(errorData.detail || "Failed to fetch balance");
+        }
+      } catch (err: unknown) {
         console.log("Balance fetch error:", err);
-        setError(err.message || String(err));
+        const errorMessage = err instanceof Error ? err.message : String(err);
+        setError(errorMessage);
       } finally {
         setLoading(false);
       }
@@ -132,53 +193,7 @@ export default function BalancePage() {
     if (email && password) {
       fetchBalance();
     }
-    // eslint-disable-next-line
-  }, [email, password, initialized]);
-
-  // Refresh balance when window gets focus (user returns from other pages)
-  useEffect(() => {
-    if (!email || !password || !initialized) return;
-    
-    const handleWindowFocus = () => {
-      console.log("Window focused, refreshing balance...");
-      // Refetch balance when window gets focus
-      const fetchBalanceOnFocus = async () => {
-        try {
-          const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/balance`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ email, password }),
-          });
-          if (!res.ok) return;
-          const data = await res.json();
-          const newBalance = parseFloat(data.balance);
-          
-          if (newBalance !== balance) {
-            setAnimationFrom(balance);
-            setBalance(newBalance);
-          }
-        } catch (err) {
-          console.log("Balance refresh error:", err);
-        }
-      };
-      fetchBalanceOnFocus();
-    };
-
-    const handleVisibilityChange = () => {
-      if (!document.hidden) {
-        console.log("Page became visible, refreshing balance...");
-        handleWindowFocus(); // Reuse the same logic
-      }
-    };
-
-    window.addEventListener('focus', handleWindowFocus);
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    
-    return () => {
-      window.removeEventListener('focus', handleWindowFocus);
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-    };
-  }, [email, password, initialized, balance]);
+  }, [email, password, initialized, firstVisit, notifications]);
 
   // Check for new transfer notifications
   useEffect(() => {
@@ -189,7 +204,7 @@ export default function BalancePage() {
         const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/transactions`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email, password }),
+          body: JSON.stringify({ email, password: getPasswordForAPI() }),
         });
         if (res.ok) {
           const data = await res.json();
@@ -225,7 +240,7 @@ export default function BalancePage() {
         const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/transactions`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email, password }),
+          body: JSON.stringify({ email, password: getPasswordForAPI() }),
         });
         if (!res.ok) {
           const data = await res.json();
@@ -233,9 +248,10 @@ export default function BalancePage() {
         }
         const data: Transaction[] = await res.json();
         setTransactions(data);
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.log("Transactions fetch error:", err);
-        setError(err.message || String(err));
+        const errorMessage = err instanceof Error ? err.message : String(err);
+        setError(errorMessage);
       }
     }
     if (email && password) {
@@ -257,19 +273,21 @@ export default function BalancePage() {
     }
     if (animationFrom < balance) {
       setArrowDirection('up');
-      setShowArrow(true);
+      setShowArrow(false);
     } else if (animationFrom > balance) {
       setArrowDirection('down');
-      setShowArrow(true);
+      setShowArrow(false);
     } else {
       setShowArrow(false);
       setArrowDirection(null);
     }
-    // Fade out after animation duration
-    const timer = setTimeout(() => {
-      setShowArrow(false);
-    }, 1000); // match CounterScroller duration
-    return () => clearTimeout(timer);
+    // delay arrow reveal to sync with digit start (2 frames ~ 32ms)
+    const reveal = setTimeout(() => setShowArrow(true), 32);
+    const hide = setTimeout(() => setShowArrow(false), 1032); // duration + delay
+    return () => {
+      clearTimeout(reveal);
+      clearTimeout(hide);
+    };
   }, [animationFrom, balance]);
 
   // Close dropdown on outside click
@@ -279,41 +297,49 @@ export default function BalancePage() {
         setDropdownOpen(false);
       }
     }
-    if (dropdownOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-    } else {
-      document.removeEventListener('mousedown', handleClickOutside);
-    }
+    document.addEventListener("mousedown", handleClickOutside);
     return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener("mousedown", handleClickOutside);
     };
-  }, [dropdownOpen]);
+  }, []);
+
+  // Initialize session manager
+  useEffect(() => {
+    if (email && password) {
+      console.log("Session manager started 3 min timeout with button-click detection");
+      initSessionManager(
+        (status) => {
+          console.log(`Session Status: ${status.timeRemaining} remaining - Updates every 5s, 1s countdown in last 30s`);
+          setSessionStatus(status);
+        },
+        () => {
+          console.log("Session expired, redirecting to login");
+          clearAllSessionData();
+          router.push('/login?message=Session expired, please sign in again');
+        }
+      );
+    }
+
+    return () => {
+      stopSessionManager();
+    };
+  }, [email, password, router]);
 
   const handleLogout = () => {
-    // Clear credentials and redirect
-    if (typeof window !== "undefined") {
-      sessionStorage.removeItem('email');
-      sessionStorage.removeItem('password');
-    }
+    clearAllSessionData();
     router.push("/login");
   };
-  const goDeposit = () => {
-    router.push(`/deposit`);
-  };
-  const goWithdraw = () => {
-    router.push(`/withdraw`);
-  };
 
-  const goTransfer = () => {
-    router.push(`/transfer`);
-  };
-
-  // Remove old animationFrom logic and use the state
-  // let animationFrom = prevBalanceRef.current;
-  // if (typeof window !== "undefined" && !sessionStorage.getItem("visitedBalance")) {
-  //   animationFrom = 0;
-  //   sessionStorage.setItem("visitedBalance", "true");
-  // }
+  if (!email || !password) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={`min-h-screen flex items-center justify-center transition-colors duration-200 ${
@@ -358,20 +384,60 @@ export default function BalancePage() {
                 >
                   Profile
                 </a>
-          <button
-            onClick={handleLogout}
+                <button
+                  onClick={handleLogout}
                   className={`px-6 py-4 font-semibold rounded-b-xl transition text-left text-lg ${
                     isDarkMode 
                       ? 'hover:bg-red-900/50 text-red-400' 
                       : 'hover:bg-red-50 text-red-600'
                   }`}
-          >
+                >
                   Log out
-          </button>
+                </button>
               </div>
             )}
           </div>
         </header>
+        
+        {/* Session Timeout Warning - Only show in last 2 minutes */}
+        {sessionStatus && sessionStatus.showWarning && (
+          <div className={`w-full mb-6 p-4 rounded-xl border-2 animate-pulse ${
+            isDarkMode 
+              ? 'bg-red-900/20 border-red-600 text-red-300' 
+              : 'bg-red-50 border-red-300 text-red-700'
+          }`}>
+            <div className="flex items-center justify-center gap-3">
+              <svg className="w-6 h-6 animate-bounce" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+              </svg>
+              <span className="font-semibold text-lg">
+                Session expires in: {sessionStatus.formattedTime}
+              </span>
+            </div>
+            {sessionStatus.showStillActivePrompt && (
+              <div className="text-center mt-3">
+                <p className="text-sm opacity-80 mb-3">
+                  Still active? Click{" "}
+                  <button
+                    onClick={() => {
+                      console.log('🔄 "Still active" button clicked');
+                      // Button click will be automatically detected by session manager
+                    }}
+                    className={`font-bold underline hover:no-underline transition-all duration-200 ${
+                      isDarkMode 
+                        ? 'text-red-200 hover:text-red-100' 
+                        : 'text-red-800 hover:text-red-900'
+                    }`}
+                  >
+                    HERE
+                  </button>
+                  .
+                </p>
+              </div>
+            )}
+          </div>
+        )}
+
         {loading ? (
           <p className={`text-center text-xl ${
             isDarkMode ? 'text-blue-400' : 'text-blue-500'
@@ -416,13 +482,13 @@ export default function BalancePage() {
             </div>
             <div className="flex justify-center gap-6 mb-8 w-full">
               <button
-                onClick={goDeposit}
+                onClick={() => router.push('/deposit')}
                 className="px-8 py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xl font-semibold shadow transition w-48"
               >
                 Deposit
               </button>
               <button
-                onClick={goWithdraw}
+                onClick={() => router.push('/withdraw')}
                 className={`px-8 py-4 rounded-xl text-xl font-semibold shadow transition w-48 border ${
                   isDarkMode 
                     ? 'bg-gray-700 hover:bg-gray-600 text-gray-200 border-gray-600' 
@@ -502,7 +568,7 @@ export default function BalancePage() {
           )}
         </div>
         <button
-          onClick={goTransfer}
+          onClick={() => router.push('/transfer')}
           className="mt-6 px-6 py-3 bg-green-600 hover:bg-green-700 text-white rounded-xl w-max mx-auto transition-colors text-lg font-semibold"
         >
           Transfer Money

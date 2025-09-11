@@ -1,12 +1,7 @@
-#!/bin/bash
+#!/bin/sh
 
-# Start nginx in background
-nginx
+# Wait for a moment to ensure everything is ready
+sleep 2
 
-# Start the Next.js frontend server
-cd /app/frontend
-PORT=3000 HOSTNAME=127.0.0.1 node server.js &
-
-# Start the backend server
-cd /app/backend
-uvicorn main:app --host 0.0.0.0 --port 8000 
+# Start supervisor (which manages both backend and nginx)
+exec /usr/bin/supervisord -c /etc/supervisor/conf.d/supervisord.conf 

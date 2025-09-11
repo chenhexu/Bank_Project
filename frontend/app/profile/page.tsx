@@ -3,15 +3,51 @@
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useDarkMode } from "../../contexts/DarkModeContext";
+import { useGoogleAuth } from "../../hooks/useGoogleAuth";
+import { useFacebookAuth } from "../../hooks/useFacebookAuth";
 
-function Modal({ open, onClose, title, value, onChange, onSave, type = "text" }) {
+function Modal({ open, onClose, title, value, onChange, onSave, type = "text", confirmValue = "", onConfirmChange = null }) {
   if (!open) return null;
+  
+  const isPasswordModal = title === "Password Setup" || title === "Change Password";
+  
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div className="absolute inset-0" style={{ background: "rgba(0,0,0,0.4)" }} onClick={onClose}></div>
       <div className="relative bg-white rounded-2xl shadow-2xl p-10 w-full max-w-lg flex flex-col items-center">
-        <div className="text-xl font-bold mb-4">Edit {title}</div>
-        {title === "Phone Number" ? (
+        <div className="text-xl font-bold mb-4">{title}</div>
+        
+        {isPasswordModal ? (
+          <div className="w-full space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                {title === "Change Password" ? "New Password" : "Password"}
+              </label>
+              <input
+                type="password"
+                value={value}
+                onChange={e => onChange(e.target.value)}
+                placeholder="Enter password"
+                className="w-full px-4 py-3 rounded-xl border border-blue-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-lg"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Confirm Password
+              </label>
+              <input
+                type="password"
+                value={confirmValue}
+                onChange={e => onConfirmChange && onConfirmChange(e.target.value)}
+                placeholder="Confirm password"
+                className="w-full px-4 py-3 rounded-xl border border-blue-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-lg"
+              />
+            </div>
+            <div className="text-sm text-gray-600">
+              Password must be at least 8 characters long.
+            </div>
+          </div>
+        ) : title === "Phone Number" ? (
           <div className="w-full min-w-[400px]">
             <input
               type="tel"
@@ -32,9 +68,12 @@ function Modal({ open, onClose, title, value, onChange, onSave, type = "text" })
             className="w-full px-4 py-3 rounded-xl border border-blue-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-lg mb-6"
           />
         )}
+        
         <div className="flex gap-4 w-full justify-end mt-6">
           <button onClick={onClose} className="px-5 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold">Cancel</button>
-          <button onClick={onSave} className="px-5 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-semibold">Save</button>
+          <button onClick={onSave} className="px-5 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-semibold">
+            {isPasswordModal ? "Set Password" : "Save"}
+          </button>
         </div>
       </div>
     </div>
@@ -44,18 +83,25 @@ function Modal({ open, onClose, title, value, onChange, onSave, type = "text" })
 export default function ProfilePage() {
   const router = useRouter();
   const { isDarkMode, toggleDarkMode } = useDarkMode();
+  const { isGoogleReady, isLoading: isGoogleLoading, signInWithGoogle } = useGoogleAuth();
+  const { isFacebookReady, isLoading: isFacebookLoading, signInWithFacebook } = useFacebookAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [username, setUsername] = useState("");
   const [profilePic, setProfilePic] = useState<string | null>(null);
   const [phone, setPhone] = useState(""); // Placeholder for phone number
+  const [loading, setLoading] = useState(true);
+  const [authProvider, setAuthProvider] = useState("email"); // email, google, facebook
+  const [linkingStatus, setLinkingStatus] = useState("");
+  const [isLinking, setIsLinking] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Modal state
   const [modalOpen, setModalOpen] = useState(false);
   const [modalField, setModalField] = useState("");
   const [modalValue, setModalValue] = useState("");
+  const [modalConfirmValue, setModalConfirmValue] = useState("");
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -63,6 +109,15 @@ export default function ProfilePage() {
       const storedPass = sessionStorage.getItem('password') || '';
       setEmail(storedEmail);
       setPassword(storedPass);
+      
+      // Detect auth provider based on password markers
+      if (storedPass === "GOOGLE_OAUTH_USER_NO_PASSWORD") {
+        setAuthProvider("google");
+      } else if (storedPass === "FACEBOOK_OAUTH_USER_NO_PASSWORD") {
+        setAuthProvider("facebook");
+      } else {
+        setAuthProvider("email");
+      }
       if (!storedEmail || !storedPass) {
         router.push('/login');
         return;
@@ -71,10 +126,17 @@ export default function ProfilePage() {
       // Dark mode is now handled by the context
       
       // Fetch profile from backend
-              fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/profile`, {
+      setLoading(true);
+      
+      // Use OAuth token for OAuth users, regular password for email users
+      const apiPassword = (storedPass === "GOOGLE_OAUTH_USER_NO_PASSWORD" || storedPass === "FACEBOOK_OAUTH_USER_NO_PASSWORD") 
+        ? "google_oauth_token" 
+        : storedPass;
+      
+      fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/profile`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: storedEmail, password: storedPass }),
+        body: JSON.stringify({ email: storedEmail, password: apiPassword }),
       })
         .then(res => res.json())
         .then(data => {
@@ -84,9 +146,146 @@ export default function ProfilePage() {
         })
         .catch(() => {
           // fallback or error handling
+        })
+        .finally(() => {
+          setLoading(false);
         });
     }
   }, [router]);
+
+  // Handler for linking Google account
+  const handleLinkGoogle = async () => {
+    if (!isGoogleReady || isGoogleLoading || isLinking) {
+      setLinkingStatus("⚠️ Google OAuth is loading. Please wait...");
+      return;
+    }
+
+    setLinkingStatus("");
+    setIsLinking(true);
+
+    try {
+      console.log("🔗 Starting Google account linking...");
+      const result = await signInWithGoogle();
+      console.log("🔗 Google linking result:", result);
+      
+      if (result && result.user_profile) {
+        if (result.user_profile.linked_account) {
+          setLinkingStatus("✅ Google account successfully linked! You can now sign in with Google or your existing password.");
+        } else {
+          setLinkingStatus("⚠️ This Google account is already associated with a different BlueBank account.");
+        }
+      } else {
+        setLinkingStatus("❌ Failed to link Google account. Please try again.");
+      }
+    } catch (error) {
+      console.error("🔗 Google linking error:", error);
+      setLinkingStatus("❌ Failed to link Google account. Please try again.");
+    } finally {
+      setIsLinking(false);
+      // Clear status after 5 seconds
+      setTimeout(() => setLinkingStatus(""), 5000);
+    }
+  };
+
+  // Handler for linking Facebook account
+  const handleLinkFacebook = async () => {
+    if (!isFacebookReady || isFacebookLoading || isLinking) {
+      setLinkingStatus("⚠️ Facebook OAuth is loading. Please wait...");
+      return;
+    }
+
+    setLinkingStatus("");
+    setIsLinking(true);
+
+    try {
+      console.log("🔗 Starting Facebook account linking...");
+      const result = await signInWithFacebook();
+      console.log("🔗 Facebook linking result:", result);
+      
+      if (result && result.user_profile) {
+        if (result.user_profile.linked_account) {
+          setLinkingStatus("✅ Facebook account successfully linked! You can now sign in with Facebook or your existing password.");
+        } else {
+          setLinkingStatus("⚠️ This Facebook account is already associated with a different BlueBank account.");
+        }
+      } else {
+        setLinkingStatus("❌ Failed to link Facebook account. Please try again.");
+      }
+    } catch (error) {
+      console.error("🔗 Facebook linking error:", error);
+      setLinkingStatus("❌ Failed to link Facebook account. Please try again.");
+    } finally {
+      setIsLinking(false);
+      // Clear status after 5 seconds
+      setTimeout(() => setLinkingStatus(""), 5000);
+    }
+  };
+
+  // Handler for setting up password for OAuth users
+  const handleSetupPassword = () => {
+    setModalField("Password Setup");
+    setModalValue("");
+    setModalConfirmValue("");
+    setModalOpen(true);
+  };
+
+  // Handler for changing password for email users
+  const handleChangePassword = () => {
+    setModalField("Change Password");
+    setModalValue("");
+    setModalConfirmValue("");
+    setModalOpen(true);
+  };
+
+  // Handler for saving password changes
+  const handlePasswordSave = async () => {
+    if (modalValue.length < 8) {
+      setLinkingStatus("❌ Password must be at least 8 characters long.");
+      setTimeout(() => setLinkingStatus(""), 3000);
+      return;
+    }
+
+    if (modalValue !== modalConfirmValue) {
+      setLinkingStatus("❌ Passwords do not match. Please try again.");
+      setTimeout(() => setLinkingStatus(""), 3000);
+      return;
+    }
+
+    try {
+      const endpoint = modalField === "Password Setup" ? "/api/setup-password" : "/api/change-password";
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}${endpoint}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: email,
+          password: modalField === "Change Password" ? password : undefined,
+          new_password: modalValue
+        }),
+      });
+
+      if (response.ok) {
+        setLinkingStatus("✅ Password updated successfully!");
+        setModalOpen(false);
+        setModalValue("");
+        setModalConfirmValue("");
+        
+        // If this was setup for OAuth user, update the auth provider and session
+        if (modalField === "Password Setup") {
+          sessionStorage.setItem("password", modalValue);
+          setPassword(modalValue);
+          setAuthProvider("email");
+        }
+      } else {
+        const errorData = await response.json();
+        setLinkingStatus(`❌ ${errorData.detail || "Failed to update password"}`);
+      }
+    } catch (error) {
+      console.error("Password update error:", error);
+      setLinkingStatus("❌ Failed to update password. Please try again.");
+    }
+
+    setTimeout(() => setLinkingStatus(""), 5000);
+  };
 
   const handlePicChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -98,9 +297,6 @@ export default function ProfilePage() {
       reader.readAsDataURL(file);
     }
   };
-
-  // Masked email for display
-  const maskedEmail = email.replace(/(.{2}).+(@.+)/, (_, a, b) => a + "********" + b);
 
   // Format phone number for display
   const formatPhoneNumber = (phoneNumber: string) => {
@@ -218,7 +414,7 @@ export default function ProfilePage() {
   return (
     <div className={`min-h-screen flex transition-colors duration-200 ${
       isDarkMode 
-        ? 'bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900' 
+        ? 'bg-gradient-to-br from-gray-900 via-blue-900/20 to-gray-800' 
         : 'bg-gradient-to-br from-blue-100 via-white to-blue-200'
     }`}>
       {/* Sidebar */}
@@ -260,9 +456,26 @@ export default function ProfilePage() {
       </aside>
       {/* Main Content */}
       <main className="flex-1 flex flex-col items-center justify-start py-20 px-12">
-        <div className={`w-full max-w-3xl rounded-3xl shadow-xl p-14 flex flex-col items-center transition-colors duration-200 ${
-          isDarkMode ? 'bg-gray-800/90' : 'bg-white/90'
-        }`}>
+        {loading ? (
+          <div className={`w-full max-w-3xl rounded-3xl shadow-xl p-14 flex flex-col items-center justify-center transition-colors duration-200 ${
+            isDarkMode ? 'bg-gray-800/90' : 'bg-white/90'
+          }`}>
+            <div className={`text-center ${
+              isDarkMode ? 'text-blue-300' : 'text-blue-400'
+            }`}>
+              <div className="inline-flex items-center">
+                <svg className="animate-spin -ml-1 mr-3 h-8 w-8" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Loading profile...
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className={`w-full max-w-3xl rounded-3xl shadow-xl p-14 flex flex-col items-center transition-colors duration-200 ${
+            isDarkMode ? 'bg-gray-800/90' : 'bg-white/90'
+          }`}>
           {/* Profile Card */}
           <div className={`w-full rounded-2xl shadow p-8 mb-10 flex flex-col items-center relative transition-colors duration-200 ${
             isDarkMode ? 'bg-gray-700' : 'bg-white'
@@ -342,7 +555,7 @@ export default function ProfilePage() {
               }`}>Phone Number</div>
               <div className={`flex-1 text-lg ${
                 isDarkMode ? 'text-gray-200' : 'text-gray-800'
-              }`}>{phone ? formatPhoneNumber(phone) : <span className={isDarkMode ? 'text-gray-500' : 'text-gray-400'}>You haven't added a phone number yet.</span>}</div>
+              }`}>{phone ? formatPhoneNumber(phone) : <span className={isDarkMode ? 'text-gray-500' : 'text-gray-400'}>You haven&apos;t added a phone number yet.</span>}</div>
               <button onClick={() => openModal("Phone Number", phone)} className={`ml-4 px-4 py-1 rounded-lg font-medium text-sm transition-colors duration-200 ${
                 phone 
                   ? (isDarkMode ? 'bg-blue-900/50 hover:bg-blue-800/50 text-blue-300' : 'bg-blue-50 hover:bg-blue-100 text-blue-700')
@@ -358,9 +571,150 @@ export default function ProfilePage() {
             <div className={`text-xl font-bold mb-2 ${
               isDarkMode ? 'text-gray-200' : 'text-gray-800'
             }`}>Password and Authentication</div>
-            <div className="flex items-center gap-4 mb-2">
-              <button className="px-5 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-semibold text-base">Change Password</button>
+            
+            {/* Current Authentication Method */}
+            <div className={`p-4 rounded-xl ${
+              isDarkMode ? 'bg-gray-600' : 'bg-gray-50'
+            }`}>
+              <div className={`text-sm font-medium mb-2 ${
+                isDarkMode ? 'text-gray-300' : 'text-gray-600'
+              }`}>Current Sign-In Method</div>
+              <div className="flex items-center gap-3">
+                {authProvider === "google" && (
+                  <>
+                    <div className="w-6 h-6 bg-white rounded-full flex items-center justify-center">
+                      <svg className="w-4 h-4" viewBox="0 0 24 24">
+                        <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                        <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                        <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                        <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                      </svg>
+                    </div>
+                    <span className={`font-medium ${
+                      isDarkMode ? 'text-gray-200' : 'text-gray-800'
+                    }`}>Google Account</span>
+                  </>
+                )}
+                {authProvider === "facebook" && (
+                  <>
+                    <div className="w-6 h-6 bg-[#1877F2] rounded-full flex items-center justify-center">
+                      <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+                      </svg>
+                    </div>
+                    <span className={`font-medium ${
+                      isDarkMode ? 'text-gray-200' : 'text-gray-800'
+                    }`}>Facebook Account</span>
+                  </>
+                )}
+                {authProvider === "email" && (
+                  <>
+                    <div className={`w-6 h-6 rounded-full flex items-center justify-center ${
+                      isDarkMode ? 'bg-blue-900' : 'bg-blue-100'
+                    }`}>
+                      <svg className={`w-4 h-4 ${
+                        isDarkMode ? 'text-blue-300' : 'text-blue-600'
+                      }`} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                      </svg>
+                    </div>
+                    <span className={`font-medium ${
+                      isDarkMode ? 'text-gray-200' : 'text-gray-800'
+                    }`}>Email & Password</span>
+                  </>
+                )}
+              </div>
             </div>
+
+            {/* Status message for account linking */}
+            {linkingStatus && (
+              <div className={`p-3 rounded-lg text-center ${
+                linkingStatus.includes("✅") ? "bg-green-100 text-green-800" : 
+                linkingStatus.includes("⚠️") ? "bg-yellow-100 text-yellow-800" : 
+                "bg-red-100 text-red-800"
+              }`}>
+                {linkingStatus}
+              </div>
+            )}
+
+            {/* OAuth users - Add Password Option */}
+            {(authProvider === "google" || authProvider === "facebook") && (
+              <div className={`p-4 rounded-xl border-2 border-dashed ${
+                isDarkMode ? 'border-blue-600 bg-blue-900/10' : 'border-blue-300 bg-blue-50'
+              }`}>
+                <div className={`text-sm font-medium mb-2 ${
+                  isDarkMode ? 'text-blue-300' : 'text-blue-600'
+                }`}>Add Password Sign-In</div>
+                <div className={`text-sm mb-3 ${
+                  isDarkMode ? 'text-gray-400' : 'text-gray-600'
+                }`}>Set up a password so you can sign in with either {authProvider === "google" ? "Google" : "Facebook"} or email & password.</div>
+                <button 
+                  onClick={handleSetupPassword}
+                  className={`px-4 py-2 rounded-lg font-medium text-sm transition-colors duration-200 ${
+                  isDarkMode 
+                    ? 'bg-blue-700 hover:bg-blue-600 text-white' 
+                    : 'bg-blue-600 hover:bg-blue-700 text-white'
+                }`}>Set Up Password</button>
+              </div>
+            )}
+
+            {/* Email users - Add OAuth Options */}
+            {authProvider === "email" && (
+              <div className={`p-4 rounded-xl border-2 border-dashed ${
+                isDarkMode ? 'border-green-600 bg-green-900/10' : 'border-green-300 bg-green-50'
+              }`}>
+                <div className={`text-sm font-medium mb-2 ${
+                  isDarkMode ? 'text-green-300' : 'text-green-600'
+                }`}>Link Social Accounts</div>
+                <div className={`text-sm mb-3 ${
+                  isDarkMode ? 'text-gray-400' : 'text-gray-600'
+                }`}>Connect Google or Facebook for faster sign-in options.</div>
+                <div className="flex gap-2">
+                  <button 
+                    onClick={handleLinkGoogle}
+                    disabled={!isGoogleReady || isGoogleLoading || isLinking}
+                    className={`px-4 py-2 rounded-lg font-medium text-sm transition-colors duration-200 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed ${
+                    isDarkMode 
+                      ? 'bg-gray-700 hover:bg-gray-600 text-gray-200 border border-gray-600' 
+                      : 'bg-white hover:bg-gray-50 text-gray-700 border border-gray-300'
+                  }`}>
+                    <svg className="w-4 h-4" viewBox="0 0 24 24">
+                      <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                      <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                      <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                      <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                    </svg>
+                    {isGoogleLoading ? "Loading..." : "Link Google"}
+                  </button>
+                  <button 
+                    onClick={handleLinkFacebook}
+                    disabled={!isFacebookReady || isFacebookLoading || isLinking}
+                    className={`px-4 py-2 rounded-lg font-medium text-sm transition-colors duration-200 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed ${
+                    isDarkMode 
+                      ? 'bg-[#1877F2] hover:bg-[#166FE5] text-white' 
+                      : 'bg-[#1877F2] hover:bg-[#166FE5] text-white'
+                  }`}>
+                    <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+                    </svg>
+                    {isFacebookLoading ? "Loading..." : "Link Facebook"}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Change Password (only for email users) */}
+            {authProvider === "email" && (
+              <div className="flex items-center gap-4">
+                <button 
+                  onClick={handleChangePassword}
+                  className={`px-5 py-2 rounded-lg font-semibold text-base transition-colors duration-200 ${
+                  isDarkMode 
+                    ? 'bg-blue-700 hover:bg-blue-600 text-white' 
+                    : 'bg-blue-600 hover:bg-blue-700 text-white'
+                }`}>Change Password</button>
+              </div>
+            )}
             
             {/* Placeholders for future features */}
             <div className={isDarkMode ? 'text-gray-400' : 'text-gray-500'}>Authenticator App, Security Keys, and Account Removal features coming soon.</div>
@@ -412,6 +766,7 @@ export default function ProfilePage() {
             </div>
           </div>
         </div>
+        )}
       </main>
       {/* Modal for editing fields */}
       <Modal
@@ -420,8 +775,10 @@ export default function ProfilePage() {
         title={modalField}
         value={modalValue}
         onChange={setModalValue}
-        onSave={handleModalSave}
+        onSave={modalField === "Password Setup" || modalField === "Change Password" ? handlePasswordSave : handleModalSave}
         type={modalField === "Email" ? "email" : modalField === "Phone Number" ? "tel" : "text"}
+        confirmValue={modalConfirmValue}
+        onConfirmChange={setModalConfirmValue}
       />
     </div>
   );

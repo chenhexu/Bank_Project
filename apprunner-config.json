@@ -1,0 +1,9 @@
+{
+  "ImageRepository": {
+    "ImageIdentifier": "992848511660.dkr.ecr.us-east-1.amazonaws.com/bluebank:latest",
+    "ImageConfiguration": {
+      "Port": "80"
+    },
+    "ImageRepositoryType": "ECR"
+  }
+} 

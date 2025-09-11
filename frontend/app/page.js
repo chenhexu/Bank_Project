@@ -1,5 +1,3 @@
-import Image from "next/image";
-
 export default function HomePage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-100 via-white to-blue-200">

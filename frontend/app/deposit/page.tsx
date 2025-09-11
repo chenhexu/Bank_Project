@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import { useDarkMode } from "../../contexts/DarkModeContext";
+import { initSessionManager } from "../../utils/sessionManager";
 
 export default function DepositPage() {
   const { isDarkMode } = useDarkMode();
@@ -19,8 +20,14 @@ export default function DepositPage() {
       const storedPass = sessionStorage.getItem('password') || '';
       setEmail(storedEmail);
       setPassword(storedPass);
-      if (!storedEmail || !storedPass) {
+      // Check for OAuth users or traditional users
+      const authToken = sessionStorage.getItem('authToken');
+      
+      if (!storedEmail || (!storedPass && !authToken)) {
         router.push('/login');
+      } else {
+        // Initialize session manager for authenticated users
+        initSessionManager();
       }
     }
   }, [router]);
@@ -31,10 +38,13 @@ export default function DepositPage() {
     setIsLoading(true);
     setMessage("");
     try {
+      const isOAuthUser = password === 'GOOGLE_OAUTH_USER_NO_PASSWORD' || password === 'FACEBOOK_OAUTH_USER_NO_PASSWORD';
+      const passwordToSend = isOAuthUser ? "google_oauth_token" : password;
+      
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/deposit`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password, amount: parseFloat(amount) }),
+        body: JSON.stringify({ email, password: passwordToSend, amount: parseFloat(amount) }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.detail || "Deposit failed");
@@ -42,8 +52,9 @@ export default function DepositPage() {
       setTimeout(() => {
         router.push(`/balance`);
       }, 1000);
-    } catch (err: any) {
-      setMessage(`❌ ${err.message}`);
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : String(err);
+      setMessage(`❌ ${errorMessage}`);
     } finally {
       setIsLoading(false);
     }

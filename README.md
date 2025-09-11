@@ -1,278 +1,139 @@
 # BlueBank - Modern Banking Application
 
-A full-stack banking application built with FastAPI, Next.js, and Docker. Features include user authentication, banking operations, and a modern responsive UI. **Now with AWS PostgreSQL cloud database for cross-computer transfers!**
+A full-stack banking application built with FastAPI, Next.js, and Docker. Features include user authentication, banking operations, and a modern responsive UI with AWS cloud database integration.
 
-## 🌟 New Features (Latest Update)
+## 🌟 Features
 
-### ☁️ Cloud Database Integration
-- **AWS RDS PostgreSQL** database for shared data across computers
-- **Cross-computer transfers** - send money between different devices
-- **Real-time synchronization** - all users see the same data
-- **Scalable architecture** - ready for production deployment
+### ☁️ Cloud-Ready Architecture
+- **AWS RDS PostgreSQL** database for shared data access
+- **AWS Lightsail** deployment with Cloudflare security
+- **Cross-device transfers** - send money between different users anywhere
+- **Real-time synchronization** - all users see consistent data
+- **Production-grade security** with Cloudflare protection
 
-### 🔄 Cross-Computer Testing
+### 🛡️ Security & Infrastructure
+- **Cloudflare CDN** with DDoS protection and WAF
+- **Custom domain**: `bluebank.unifra.org`
+- **SSL/TLS encryption** for all communications
+- **IP whitelisting** for enhanced security
+- **Health monitoring** and automatic recovery
+
+### 🚀 Quick Start
+
+#### Live Demo
+Visit **[bluebank.unifra.org](https://bluebank.unifra.org)** to try the application immediately.
+
+#### Docker Deployment
 ```bash
-# Computer 1 (Your computer)
-docker run -d -p 8080:80 --name bluebank chenhexu/bluebank:latest
-
-# Computer 2 (Dad's computer)
-docker run -d -p 8080:80 --name bluebank chenhexu/bluebank:latest
-
-# Both computers will share the same database and can transfer money between each other!
-```
-
-### ☁️ AWS Cloud Platform
-- **Global Accessibility**: Access your bank from anywhere in the world
-- **Professional Hosting**: Enterprise-grade infrastructure with 99.9% uptime
-- **Auto-scaling**: Automatically handles traffic spikes and user growth
-- **Cost Effective**: Only ~$7.30/month for hosting (total ~$22.30/month with database)
-- **Easy Updates**: One-command deployment for new features and bug fixes
-
-## Quick Start
-
-### Option 1: AWS Cloud Deployment (Recommended) 🌟
-```bash
-# Deploy to AWS Elastic Beanstalk
-# Windows (PowerShell):
-.\scripts\deploy-aws.ps1
-
-# Linux/macOS:
-chmod +x scripts/deploy-aws.sh
-./scripts/deploy-aws.sh
-```
-**See [AWS Deployment Guide](docs/AWS_DEPLOYMENT.md) for detailed instructions.**
-
-### Option 2: Docker Hub (Local)
-```bash
-# Run directly from Docker Hub
-docker run -d -p 8080:80 --name bluebank chenhexu/bluebank:latest
-
-# Access the application
-open http://localhost:8080
-```
-
-### Option 3: Local Development
-```bash
-# 1. Clone the repository
-git clone https://github.com/chenhexu/Bank_Project.git
-cd Bank_Project
-
-# 2. Start the application
-# Backend:
-cd backend && python -m uvicorn main:app --reload --host 0.0.0.0 --port 8000
-
-# Frontend (in another terminal):
-cd frontend && npm run dev
-
-# Or using scripts:
-# Windows:
-scripts/start.bat
-
-# Linux/Mac:
-chmod +x scripts/start.sh
-./scripts/start.sh
-```
-
-### Access the Application
-- **Frontend**: http://localhost:3000 (local) or http://localhost:8080 (Docker Hub)
-- **Backend API**: http://localhost:8000 (local) or http://localhost:8080/api/ (Docker Hub)
-- **API Documentation**: http://localhost:8000/docs
-
-### Useful Commands
-```bash
-# Check if container is running
-docker ps
-
-# View application logs
-docker logs bluebank
-
-# Stop the application
-docker stop bluebank
-
-# Remove container completely
-docker rm -f bluebank
-
-# Check all containers (including stopped)
-docker ps -a
-```
-
-### First Time Setup
-1. Open the application URL
-2. Click "Sign up" to create your first account
-3. Start using the banking features!
-
-## Features
-
-### ☁️ Cloud Deployment
-- **AWS Elastic Beanstalk**: Professional cloud hosting platform
-- **Global Access**: Available from anywhere with internet connection
-- **Auto-scaling**: Handles traffic automatically
-- **99.9% Uptime**: Enterprise-grade reliability
-- **Easy Management**: Simple deployment and updates
-
-### Authentication
-- Email/password registration and login
-- Password recovery via email
-- Session management
-
-### Banking Operations
-- Real-time balance display with animated counter
-- Deposit funds
-- Withdraw funds (with insufficient funds protection)
-- **Transfer money between users** (now works across different computers!)
-- Complete transaction history
-- Real-time notifications with sender/recipient info
-- **Cross-computer synchronization** via cloud database
-
-### User Experience
-- Modern responsive design with Tailwind CSS
-- Dark mode support with persistence
-- Animated balance transitions
-- Mobile-friendly interface
-- Real-time updates
-- Notification system for transfers
-
-### Technical Features
-- FastAPI backend with automatic API documentation
-- Next.js frontend with TypeScript
-- **AWS PostgreSQL cloud database** for cross-computer access
-- Email notifications (Gmail/SendGrid)
-- Health checks and monitoring
-- Hot reloading for development
-- Single Docker image deployment
-- **Cloud-ready architecture** for production scaling
-
-## Docker Deployment
-
-### Single Image (Production Ready)
-```bash
-# Pull from Docker Hub
-docker pull chenhexu/bluebank:latest
-
-# Run the application (uses cloud database by default)
+# Run locally using Docker Hub
 docker run -d -p 8080:80 --name bluebank chenhexu/bluebank:latest
 
 # Access at http://localhost:8080
-
-# For cross-computer testing, run on multiple computers:
-# Computer 1: docker run -d -p 8080:80 --name bluebank chenhexu/bluebank:latest
-# Computer 2: docker run -d -p 8080:80 --name bluebank chenhexu/bluebank:latest
-# Both will share the same cloud database!
 ```
 
-### Multi-Container Development
+#### Local Development
 ```bash
-# Start with hot reloading
-docker-compose -f docker/docker-compose.dev.yml up --build -d
+# Clone the repository
+git clone https://github.com/chenhexu/Bank_Project.git
+cd Bank_Project
 
-# View logs
-docker-compose -f docker/docker-compose.dev.yml logs -f
-
-# Stop services
-docker-compose -f docker/docker-compose.dev.yml down
-```
-
-## Development Setup
-
-### Option 1: Docker Development (Recommended)
-```bash
-# Start with hot reloading
-docker-compose -f docker/docker-compose.dev.yml up --build -d
-
-# View logs
-docker-compose -f docker/docker-compose.dev.yml logs -f
-
-# Stop services
-docker-compose -f docker/docker-compose.dev.yml down
-```
-
-### Option 2: Local Development
-```bash
 # Backend
-cd backend
-pip install -r requirements.txt
-uvicorn main:app --reload --host 0.0.0.0 --port 8000
+cd backend && python -m uvicorn main:app --reload --host 0.0.0.0 --port 8000
 
 # Frontend (in another terminal)
-cd frontend
-npm install
-npm run dev
+cd frontend && npm run dev
 ```
 
-## Configuration
+## 🏗️ Architecture
 
-### Environment Variables
-The application will automatically create a `.env` file on first run, but you can configure it manually:
+### Technology Stack
+- **Backend**: FastAPI with Python
+- **Frontend**: Next.js with TypeScript
+- **Database**: AWS RDS PostgreSQL
+- **Infrastructure**: AWS Lightsail + Cloudflare
+- **Containerization**: Docker with multi-stage builds
+- **Styling**: Tailwind CSS with dark mode support
 
-```bash
-# Copy the environment template
-cp backend/env.template backend/.env
+### Core Features
 
-# Edit the file with your settings
-# See backend/env.template for all available options
-```
+#### Authentication & Security
+- Email/password registration and login
+- **Google OAuth integration** for seamless sign-in
+- **Facebook OAuth integration** for social authentication
+- Password recovery via email notifications
+- Session management with secure authentication
+- CORS protection for API endpoints
 
-### Required Environment Variables
-```env
-# Email Configuration (for password recovery)
-GMAIL_EMAIL=your-email@gmail.com
-GMAIL_APP_PASSWORD=your-app-password
+#### Banking Operations
+- Real-time balance display with animated counters
+- Deposit and withdraw funds with validation
+- Transfer money between users with instant notifications
+- Complete transaction history with detailed records
+- Insufficient funds protection and error handling
 
+#### User Experience
+- Modern responsive design optimized for all devices
+- Dark mode support with user preference persistence
+- Animated balance transitions and notifications
+- Real-time updates without page refreshes
+- Mobile-friendly interface with touch support
 
-
-# Database (Cloud PostgreSQL by default)
-DATABASE_URL=postgresql://postgres:aCzZ34x0:f~1Q[]E!o9Fb#okaj5i@bluebank-db.ca76eoy2kz8t.us-east-1.rds.amazonaws.com:5432/postgres
-```
-
-## Project Structure
+## 📁 Project Structure
 
 ```
 Bank_Project/
-├── backend/                 # FastAPI backend
-│   ├── main.py             # Main application
+├── backend/                 # FastAPI backend application
+│   ├── main.py             # Main application with API endpoints
 │   ├── requirements.txt    # Python dependencies
-│   ├── .env               # Environment variables
-│   └── .env.example       # Environment template
-├── frontend/               # Next.js frontend
-│   ├── app/               # Next.js pages
+│   └── schemas.py          # Pydantic models
+├── frontend/               # Next.js frontend application
+│   ├── app/               # Next.js 13+ app directory
+│   │   ├── login/         # Authentication pages
+│   │   ├── balance/       # Account balance page
+│   │   ├── deposit/       # Deposit funds page
+│   │   ├── withdraw/      # Withdraw funds page
+│   │   ├── transfer/      # Transfer money page
+│   │   └── history/       # Transaction history page
+│   ├── components/        # Reusable React components
 │   ├── contexts/          # React contexts (DarkMode)
-│   ├── package.json       # Node.js dependencies
-│   └── phone-input-custom.css # Custom styling
-├── docker/                 # Docker configuration
-│   ├── docker-compose.yml # Production setup
-│   └── docker-compose.dev.yml # Development setup
-├── scripts/                # Automation scripts
-│   ├── start.bat          # Windows startup
-│   ├── start.sh           # Linux/Mac startup
-│   └── setup.ps1          # PowerShell setup
-├── docs/                   # Documentation
-│   ├── DEPLOYMENT.md      # Deployment guide
-
-│   └── QUICK_START.md     # Quick start guide
-├── Dockerfile              # Single image build
-├── nginx.conf              # Nginx configuration
+│   └── package.json       # Node.js dependencies
+├── scripts/                # Deployment and setup scripts
+├── docs/                   # Documentation files
+├── Dockerfile              # Multi-stage Docker build
+├── nginx.conf              # Nginx reverse proxy configuration
 ├── start.sh               # Container startup script
-└── README.md              # This file
+└── README.md              # This documentation
 ```
 
-## Docker Commands
+## 🐳 Docker Commands
 
-### Production (Single Image)
+### Using Docker Hub Image
 ```bash
-# Build single image
-docker build -t bluebank:latest .
+# Pull latest image
+docker pull chenhexu/bluebank:latest
 
-# Run single container
-docker run -d -p 80:80 --name bluebank bluebank:latest
+# Run container
+docker run -d -p 8080:80 --name bluebank chenhexu/bluebank:latest
 
-# Stop container
-docker stop bluebank
-docker rm bluebank
+# View logs
+docker logs bluebank
+
+# Stop and remove
+docker stop bluebank && docker rm bluebank
 ```
 
-### Development (Multi-Container)
+### Building from Source
 ```bash
-# Build and start
+# Build image
+docker build -t bluebank:local .
+
+# Run locally built image
+docker run -d -p 8080:80 --name bluebank-local bluebank:local
+```
+
+### Development with Hot Reload
+```bash
+# Start development environment
 docker-compose -f docker/docker-compose.dev.yml up --build -d
 
 # View logs
@@ -282,185 +143,163 @@ docker-compose -f docker/docker-compose.dev.yml logs -f
 docker-compose -f docker/docker-compose.dev.yml down
 ```
 
-## Troubleshooting
+## 🌐 API Documentation
+
+### Authentication Endpoints
+- `POST /register` - User registration
+- `POST /login` - User authentication
+- `POST /forgot-password` - Request password recovery
+- `POST /reset-password` - Reset password with recovery code
+
+### OAuth Authentication
+- `POST /auth/google` - Google OAuth authentication
+- `GET /auth/google/config` - Google OAuth configuration
+- `POST /auth/facebook` - Facebook OAuth authentication  
+- `GET /auth/facebook/config` - Facebook OAuth configuration
+
+### Banking Endpoints
+- `POST /deposit` - Deposit funds to account
+- `POST /withdraw` - Withdraw funds from account
+- `POST /transfer` - Transfer money between users
+- `POST /balance` - Get current account balance
+- `POST /transactions` - Get transaction history
+- `POST /profile` - Get user profile information
+
+### System Endpoints
+- `GET /` - Health check and system status
+- `GET /user-count` - Get total registered users
+- `GET /docs` - Interactive API documentation (Swagger UI)
+
+## ⚙️ Configuration
+
+### Environment Variables
+```env
+# Database Configuration
+DATABASE_URL=postgresql://user:password@host:port/database
+
+# Email Configuration (for notifications)
+GMAIL_EMAIL=your-email@gmail.com
+GMAIL_APP_PASSWORD=your-app-password
+SENDGRID_API_KEY=your-sendgrid-key
+
+# Google OAuth Configuration (optional)
+GOOGLE_CLIENT_ID=your-google-client-id.apps.googleusercontent.com
+GOOGLE_CLIENT_SECRET=your-google-client-secret
+GOOGLE_REDIRECT_URI=https://bluebank.unifra.org/auth/google/callback
+
+# Application Settings
+ENVIRONMENT=production
+CORS_ORIGINS=["http://localhost:3000", "https://bluebank.unifra.org"]
+```
+
+### Setup Instructions
+1. Copy `backend/env.template` to `backend/.env`
+2. Update the environment variables with your configuration
+3. **For Google OAuth**: Follow the [Google OAuth Setup Guide](docs/GOOGLE_OAUTH_SETUP.md)
+4. **For Facebook OAuth**: Follow the [Facebook OAuth Setup Guide](docs/FACEBOOK_OAUTH_SETUP.md)
+5. For local development, the application will create default settings
+
+## 🚀 Deployment
+
+### Production Deployment (AWS Lightsail)
+The application is currently deployed on AWS Lightsail with:
+- **Domain**: `bluebank.unifra.org`
+- **SSL**: Cloudflare managed certificates
+- **Security**: IP whitelisting for Cloudflare traffic only
+- **Database**: AWS RDS PostgreSQL
+- **CDN**: Cloudflare with caching and DDoS protection
+
+### Self-Hosting Options
+1. **Docker Compose**: For simple multi-container deployment
+2. **AWS ECS**: For container orchestration at scale
+3. **Google Cloud Run**: For serverless container deployment
+4. **DigitalOcean**: For cost-effective VPS hosting
+5. **Azure Container Instances**: For cloud container deployment
+
+## 🧪 Testing
+
+### Manual Testing Workflow
+1. **Registration**: Create new user accounts
+2. **Authentication**: Test login/logout functionality
+3. **Banking Operations**: Test deposit, withdraw, and transfer
+4. **Cross-User Transfers**: Test money transfers between accounts
+5. **Password Recovery**: Test forgot password flow
+6. **UI/UX**: Test dark mode, responsive design, animations
+
+### Multi-Device Testing
+1. Access the application from different devices/browsers
+2. Register different user accounts
+3. Test real-time transfer functionality
+4. Verify data consistency across sessions
+
+### API Testing
+- Visit the `/docs` endpoint for interactive Swagger documentation
+- Use the built-in API testing interface
+- Test all endpoints with various input scenarios
+
+## 🔧 Troubleshooting
 
 ### Common Issues
 
-1. **Docker not running**
-   ```bash
-   # Start Docker Desktop and wait for it to fully initialize
-   docker info
-   ```
-
-2. **Ports already in use**
-   ```bash
-   # Check what's using the ports
-   netstat -ano | findstr :80
-   netstat -ano | findstr :3000
-   netstat -ano | findstr :8000
-   ```
-
-3. **Build fails**
-   ```bash
-   # Clean up and rebuild
-   docker system prune -f
-   docker build -t bluebank:latest .
-   ```
-
-4. **Container won't start**
-   ```bash
-   # Check logs
-   docker logs bluebank-single
-   
-   # Remove and recreate
-   docker rm bluebank-single
-   docker run -d -p 80:80 --name bluebank-single bluebank:latest
-   ```
-
-### Health Checks
+**Container won't start**
 ```bash
-# Check if container is running
-docker ps
+# Check logs for errors
+docker logs bluebank
 
-# Check container logs
-docker logs bluebank-single
+# Verify Docker is running
+docker info
 
-# Test the application
-curl http://localhost
+# Rebuild container
+docker rm bluebank
+docker run -d -p 8080:80 --name bluebank chenhexu/bluebank:latest
 ```
 
-## Deployment
-
-### Docker Hub Deployment
+**Port conflicts**
 ```bash
-# Build and tag
-docker build -t bluebank:latest .
-docker tag bluebank:latest chenhexu/bluebank:latest
+# Check what's using port 8080
+netstat -ano | findstr :8080  # Windows
+lsof -i :8080                 # Linux/macOS
 
-# Push to Docker Hub
-docker push chenhexu/bluebank:latest
+# Use different port
+docker run -d -p 8081:80 --name bluebank chenhexu/bluebank:latest
 ```
 
-### Cloud Deployment
+**Database connection issues**
+- Verify `DATABASE_URL` environment variable is set correctly
+- Check network connectivity to database server
+- Ensure database credentials are valid
 
-#### 🌟 AWS Elastic Beanstalk (Recommended)
-```bash
-# Deploy to AWS cloud platform
-# Windows (PowerShell):
-.\scripts\deploy-aws.ps1
+## 📊 Monitoring & Health Checks
 
-# Linux/macOS:
-chmod +x scripts/deploy-aws.sh
-./scripts/deploy-aws.sh
-```
-**Cost**: ~$7.30/month for hosting + $15/month for database = **~$22.30/month total**
+The application includes built-in health monitoring:
+- **Health Endpoint**: `GET /` returns system status
+- **Database Status**: Automatic connection health checks
+- **User Metrics**: Track total registered users
+- **Error Logging**: Comprehensive application logging
 
-#### Other Options
-1. **Google Cloud Run**: Perfect for serverless deployment
-2. **AWS ECS**: For container orchestration
-3. **Azure Container Instances**: For simple container deployment
-4. **DigitalOcean App Platform**: For easy deployment
-
-### Environment Setup for Production
-```bash
-# Set production environment variables
-export ENVIRONMENT=production
-export DATABASE_URL=your-production-database-url
-export GMAIL_EMAIL=your-production-email
-export GMAIL_APP_PASSWORD=your-production-app-password
-```
-
-## API Endpoints
-
-### Authentication
-- `POST /register` - User registration
-- `POST /login` - User login
-
-
-### Banking Operations
-- `POST /deposit` - Deposit funds
-- `POST /withdraw` - Withdraw funds
-- `POST /transfer` - Transfer between users
-- `POST /balance` - Get account balance
-- `POST /transactions` - Get transaction history
-
-### User Management
-- `POST /profile` - Get user profile
-- `POST /generate-recovery-code` - Password recovery
-- `POST /reset-password` - Reset password
-
-## Testing
-
-### Manual Testing
-1. Register a new account
-2. Test banking operations (deposit, withdraw, transfer)
-3. Test the banking operations
-4. Test password recovery
-5. Explore dark mode toggle
-6. Test notification system
-
-### Cross-Computer Testing
-1. **Run BlueBank on two different computers**
-2. **Register accounts on both computers**
-3. **Transfer money between computers**
-4. **Verify both computers see the same data**
-5. **Test real-time synchronization**
-
-```bash
-# Computer 1: Register user A
-# Computer 2: Register user B
-# Transfer from A to B - both computers will see the transaction!
-```
-
-### API Testing
-- Visit http://localhost:8000/docs for interactive API documentation
-- Use the built-in Swagger UI to test endpoints
-
-## Contributing
+## 🤝 Contributing
 
 1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Test thoroughly
-5. Submit a pull request
+2. Create a feature branch: `git checkout -b feature-name`
+3. Make your changes with proper testing
+4. Commit changes: `git commit -m "Add feature description"`
+5. Push to branch: `git push origin feature-name`
+6. Submit a pull request with detailed description
 
-## License
+## 📄 License
 
 This project is open source and available under the [MIT License](LICENSE).
 
-## Support
+## 🆘 Support
 
-If you encounter issues:
-
-1. **Check the logs**: `docker logs bluebank-single`
-2. **Verify Docker**: `docker info`
-3. **Check resources**: `docker stats`
-4. **Restart container**: `docker restart bluebank-single`
-5. **Clean rebuild**: `docker rm bluebank-single && docker run -d -p 80:80 --name bluebank-single bluebank:latest`
-
-## Success!
-
-Once everything is running:
-- Register a new account
-- Test the banking features
-
-- Explore the dark mode toggle
-- Check out the transaction history
-- Test the notification system
-- **Test cross-computer transfers!**
-
-### 🎉 Cross-Computer Transfer Success!
-- ✅ **Cloud database**: AWS PostgreSQL
-- ✅ **Shared data**: All computers see the same users
-- ✅ **Real-time transfers**: Money moves between computers instantly
-- ✅ **Scalable**: Ready for production deployment
-
-Happy banking!
+For issues and questions:
+1. Check the application logs: `docker logs bluebank`
+2. Review the troubleshooting section above
+3. Verify your environment configuration
+4. Check the GitHub issues page for known problems
 
 ---
 
-**Made with ❤️ using FastAPI, Next.js, Docker, and AWS PostgreSQL**
+**Built with ❤️ using FastAPI, Next.js, Docker, PostgreSQL, and AWS**
 
-**Available on Docker Hub**: `chenhexu/bluebank:latest`
-
-**Latest Update**: Cloud database migration for cross-computer transfers! 🚀 
+**Docker Hub**: `chenhexu/bluebank:latest` | **Live Demo**: [bluebank.unifra.org](https://bluebank.unifra.org)

@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import { useDarkMode } from "../../contexts/DarkModeContext";
+import { initSessionManager } from "../../utils/sessionManager";
 
 export default function WithdrawPage() {
   const { isDarkMode } = useDarkMode();
@@ -19,8 +20,14 @@ export default function WithdrawPage() {
       const storedPass = sessionStorage.getItem('password') || '';
       setEmail(storedEmail);
       setPassword(storedPass);
-      if (!storedEmail || !storedPass) {
+      // Check for OAuth users or traditional users
+      const authToken = sessionStorage.getItem('authToken');
+      
+      if (!storedEmail || (!storedPass && !authToken)) {
         router.push('/login');
+      } else {
+        // Initialize session manager for authenticated users
+        initSessionManager();
       }
     }
   }, [router]);
@@ -31,10 +38,12 @@ export default function WithdrawPage() {
     setIsLoading(true);
     setMessage("");
     try {
+      const passwordToSend = password;
+      
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/withdraw`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password, amount: parseFloat(amount) }),
+        body: JSON.stringify({ email, password: passwordToSend, amount: parseFloat(amount) }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.detail || "Withdraw failed");
@@ -42,8 +51,9 @@ export default function WithdrawPage() {
       setTimeout(() => {
         router.push(`/balance`);
       }, 1000);
-    } catch (err: any) {
-      setMessage(`❌ ${err.message}`);
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : String(err);
+      setMessage(`❌ ${errorMessage}`);
     } finally {
       setIsLoading(false);
     }

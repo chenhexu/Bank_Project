@@ -6,6 +6,7 @@ COPY frontend/package*.json ./
 RUN npm ci
 
 COPY frontend/ ./
+# Do not bake API base into image; default to window.location.origin at runtime
 RUN npm run build
 
 # Backend stage
@@ -20,9 +21,10 @@ COPY backend/ ./
 # Final stage
 FROM python:3.11-slim
 
-# Install nginx, nodejs, and backend dependencies
-RUN apt-get update && apt-get install -y nginx nodejs npm && \
-    pip install uvicorn
+# Install nginx, nodejs, supervisor, and backend dependencies
+RUN apt-get update && apt-get install -y nginx nodejs npm supervisor && \
+    pip install uvicorn && \
+    mkdir -p /var/log/supervisor
 
 # Copy backend requirements and install dependencies
 COPY backend/requirements.txt /tmp/requirements.txt
@@ -38,6 +40,9 @@ COPY --from=backend-builder /app/backend /app/backend
 
 # Copy nginx config
 COPY nginx.conf /etc/nginx/nginx.conf
+
+# Copy supervisor config
+COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 
 # Copy start script
 COPY start.sh /start.sh

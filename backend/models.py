@@ -12,6 +12,9 @@ class User(Base):
     email = Column(String, unique=True, index=True, nullable=False)
     is_active = Column(Boolean, default=True)
     is_admin = Column(Boolean, default=False)
+    auth_provider = Column(String, default='email')  # email, google, facebook
+    oauth_id = Column(String, nullable=True)  # OAuth provider's user ID
+    display_name = Column(String, nullable=True)  # Full name from OAuth
     accounts = relationship('Account', back_populates='owner')
 
 class Account(Base):

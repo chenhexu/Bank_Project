@@ -61,8 +61,9 @@ export default function ResetPasswordPage() {
         const errorData = await res.json();
         setMessage(`❌ ${errorData.detail || "Failed to reset password"}`);
       }
-    } catch (err: any) {
-      setMessage(`❌ ${err.message}`);
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : String(err);
+      setMessage(`❌ ${errorMessage}`);
     } finally {
       setIsLoading(false);
     }

@@ -4,7 +4,8 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     
-    const response = await fetch('http://localhost:8000/transfer', {
+    const apiBase = process.env.NEXT_PUBLIC_API_URL || (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000');
+    const response = await fetch(`${apiBase}/transfer`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

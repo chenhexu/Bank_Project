@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import { useDarkMode } from "../../contexts/DarkModeContext";
+import { initSessionManager } from "../../utils/sessionManager";
 
 export default function TransferPage() {
   const { isDarkMode } = useDarkMode();
@@ -20,8 +21,14 @@ export default function TransferPage() {
       const storedPass = sessionStorage.getItem('password') || '';
       setEmail(storedEmail);
       setPassword(storedPass);
-      if (!storedEmail || !storedPass) {
+      // Check for OAuth users or traditional users
+      const authToken = sessionStorage.getItem('authToken');
+      
+      if (!storedEmail || (!storedPass && !authToken)) {
         router.push('/login');
+      } else {
+        // Initialize session manager for authenticated users
+        initSessionManager();
       }
     }
   }, [router]);
@@ -43,12 +50,14 @@ export default function TransferPage() {
 
     setIsLoading(true);
     try {
+      const passwordToSend = password;
+      
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/transfer`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ 
           from_email: email, 
-          password, 
+          password: passwordToSend, 
           to_email: recipientEmail, 
           amount: parseFloat(amount) 
         }),
@@ -59,8 +68,9 @@ export default function TransferPage() {
       setTimeout(() => {
         router.push(`/balance`);
       }, 2000);
-    } catch (err: any) {
-      setMessage(`❌ ${err.message}`);
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : String(err);
+      setMessage(`❌ ${errorMessage}`);
     } finally {
       setIsLoading(false);
     }

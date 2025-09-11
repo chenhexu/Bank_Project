@@ -6,11 +6,10 @@ import "./animatedDigit.css";
 interface AnimatedDigitProps {
   prevValue: number;
   value: number;
-  index: number;
   duration?: number;
 }
 
-export default function AnimatedDigit({ prevValue, value, index, duration = 2000 }: AnimatedDigitProps) {
+export default function AnimatedDigit({ prevValue, value, duration = 2000 }: AnimatedDigitProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [isAnimating, setIsAnimating] = useState(false);
   const [digitSequence, setDigitSequence] = useState<string[]>([]);
@@ -25,7 +24,7 @@ export default function AnimatedDigit({ prevValue, value, index, duration = 2000
     // Create a stopwatch-like sequence
     const from = prevValue;
     const to = value;
-    let sequence: string[] = [];
+    const sequence: string[] = [];
     let current = from;
 
     // Add starting value

@@ -4,7 +4,8 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     
-    const response = await fetch('http://localhost:8000/login', {
+    const apiBase = process.env.NEXT_PUBLIC_API_URL || (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000');
+    const response = await fetch(`${apiBase}/login`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -19,7 +20,7 @@ export async function POST(request: NextRequest) {
     } else {
       return NextResponse.json(data, { status: response.status });
     }
-  } catch (error) {
+  } catch {
     return NextResponse.json(
       { detail: 'Internal server error' },
       { status: 500 }

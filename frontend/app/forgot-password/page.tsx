@@ -36,8 +36,9 @@ export default function ForgotPasswordPage() {
         const errorData = await res.json();
         setMessage(`❌ ${errorData.detail || "Failed to send reset email"}`);
       }
-    } catch (err: any) {
-      setMessage(`❌ ${err.message}`);
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : String(err);
+      setMessage(`❌ ${errorMessage}`);
     } finally {
       setIsLoading(false);
     }
@@ -63,7 +64,7 @@ export default function ForgotPasswordPage() {
           <p className={`mt-4 text-center text-base ${
             isDarkMode ? 'text-gray-300' : 'text-gray-600'
           }`}>
-            Enter your email address and we'll send you a recovery code to reset your password.
+            Enter your email address and we&apos;ll send you a recovery code to reset your password.
           </p>
         </div>
 
