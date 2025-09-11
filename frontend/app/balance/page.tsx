@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import CounterScroller from "../../components/CounterScroller";
 import { useDarkMode } from "../../contexts/DarkModeContext";
 import { recoverOAuthSession, clearAllSessionData } from "../../utils/sessionRecovery";
-import { initSessionManager, stopSessionManager, SessionStatus } from "../../utils/sessionManager";
+import { initSessionManager, stopSessionManager, SessionStatus, resetSessionTimer } from "../../utils/sessionManager";
 
 type Transaction = {
   type: string;
@@ -306,7 +306,7 @@ export default function BalancePage() {
   // Initialize session manager
   useEffect(() => {
     if (email && password) {
-      console.log("Session manager started 3 min timeout with button-click detection");
+      console.log("Session manager started 15 min timeout with button-click detection");
       initSessionManager(
         (status) => {
           console.log(`Session Status: ${status.timeRemaining} remaining - Updates every 5s, 1s countdown in last 30s`);
@@ -421,7 +421,8 @@ export default function BalancePage() {
                   <button
                     onClick={() => {
                       console.log('🔄 "Still active" button clicked');
-                      // Button click will be automatically detected by session manager
+                      // Manually reset the session timer
+                      resetSessionTimer();
                     }}
                     className={`font-bold underline hover:no-underline transition-all duration-200 ${
                       isDarkMode 

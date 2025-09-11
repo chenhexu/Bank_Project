@@ -15,8 +15,8 @@ class SessionManager {
   private onSessionUpdate?: (status: SessionStatus) => void;
   private onSessionExpired?: () => void;
   
-  // 3 minutes = 180,000ms, show warning in last 2 minutes = 120,000ms
-  private readonly SESSION_TIMEOUT = 3 * 60 * 1000; // 3 minutes
+  // 15 minutes = 900,000ms, show warning in last 2 minutes = 120,000ms
+  private readonly SESSION_TIMEOUT = 15 * 60 * 1000; // 15 minutes
   private readonly WARNING_THRESHOLD = 2 * 60 * 1000; // 2 minutes
 
 
@@ -57,8 +57,8 @@ class SessionManager {
 
 
     
-    console.log('🔵 Session manager started - 3 min timeout with button-click detection');
-    console.log('🕐 Session Status: 3m 0s remaining (ACTIVE) - Updates every 5s, 1s countdown in last 30s');
+    console.log('🔵 Session manager started - 15 min timeout with button-click detection');
+    console.log('🕐 Session Status: 15m 0s remaining (ACTIVE) - Updates every 5s, 1s countdown in last 30s');
   }
 
   public stop(): void {
@@ -127,7 +127,7 @@ class SessionManager {
     }
   }
 
-  private resetInactivityTimer(): void {
+  public resetInactivityTimer(): void {
     if (this.inactivityTimer) {
       clearTimeout(this.inactivityTimer);
     }
@@ -270,5 +270,11 @@ export function stopSessionManager(): void {
 export function getSessionStatus(): SessionStatus | null {
   if (!globalSessionManager) return null;
   return globalSessionManager.getSessionStatus();
+}
+
+export function resetSessionTimer(): void {
+  if (globalSessionManager) {
+    globalSessionManager.resetInactivityTimer();
+  }
 }
 
