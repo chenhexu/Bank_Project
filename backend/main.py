@@ -845,7 +845,15 @@ def google_auth(request: Request, payload: GoogleAuthRequest):
             scheme = forwarded_proto or request.url.scheme or "http"
             if host == "localhost":
                 host = "localhost:8080"
-            redirect_uri = f"{scheme}://{host}/oauth-callback"
+            
+            # Use environment variable as fallback for production
+            env_redirect_uri = os.getenv("GOOGLE_REDIRECT_URI")
+            if env_redirect_uri and not host.startswith("localhost"):
+                redirect_uri = env_redirect_uri
+                logger.info(f"Using environment GOOGLE_REDIRECT_URI: {redirect_uri}")
+            else:
+                redirect_uri = f"{scheme}://{host}/oauth-callback"
+                logger.info(f"Built redirect_uri from headers: {redirect_uri}")
             google_info = exchange_google_code(payload.code, redirect_uri)
             logger.info(f"Step 1 SUCCESS: Google code exchanged for email: {google_info.get('email')}")
         elif payload.credential:
