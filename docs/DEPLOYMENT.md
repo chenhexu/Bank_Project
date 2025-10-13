@@ -1,95 +1,109 @@
-# 🚀 BlueBank Deployment Guide
+# Deployment Guide
 
 This guide covers deploying BlueBank in various environments, from local development to production cloud deployment.
 
-## 📋 Prerequisites
+## Prerequisites
 
-- Docker Desktop installed and running
+- Docker installed and running
 - Git (for cloning the repository)
 - 4GB+ RAM recommended
 
-## 🏠 Local Development
+## Local Development
 
-### Quick Start (Recommended)
+### Quick Start
 ```bash
 # Clone the repository
-git clone <repository-url>
+git clone https://github.com/chenhexu/Bank_Project.git
 cd Bank_Project
 
-# One-click setup
-# Windows:
-run.bat
-
-# Linux/Mac:
-chmod +x run.sh
-./run.sh
+# Run with Docker
+docker run -d -p 8080:80 --name bluebank chenhexu/bluebank:latest
 ```
 
 ### Manual Setup
 ```bash
-# Production mode
-docker-compose up --build -d
+# Backend
+cd backend
+cp env.template .env
+# Edit .env with your configuration
+python -m uvicorn main:app --reload --port 8000
 
-# Development mode (with hot reloading)
-docker-compose -f docker-compose.dev.yml up --build -d
+# Frontend (in another terminal)
+cd frontend
+npm install
+npm run dev
 ```
 
-## ☁️ Cloud Deployment
+## Docker Deployment
 
-### Option 1: Docker Compose on VPS
+### Using Docker Hub (Recommended)
+```bash
+# Pull and run latest image
+docker pull chenhexu/bluebank:latest
+docker run -d -p 8080:80 --name bluebank chenhexu/bluebank:latest
 
-1. **Prepare your server**
+# With custom environment file
+docker run -d -p 8080:80 --name bluebank --env-file ~/bluebank.env chenhexu/bluebank:latest
+```
+
+### Building from Source
+```bash
+# Build image
+docker build -t bluebank:local .
+
+# Run locally built image
+docker run -d -p 8080:80 --name bluebank-local bluebank:local
+```
+
+### Docker Compose
+```bash
+# Development
+docker-compose -f docker/docker-compose.dev.yml up --build -d
+
+# Production
+docker-compose -f docker/docker-compose.yml up --build -d
+```
+
+## Cloud Deployment
+
+### AWS Lightsail (Current Production)
+
+1. **Launch Lightsail Instance**
+   - Choose Ubuntu 20.04 LTS
+   - $5/month plan minimum
+   - Configure firewall (ports 22, 80, 443)
+
+2. **Install Docker**
    ```bash
-   # Update system
    sudo apt update && sudo apt upgrade -y
-   
-   # Install Docker
    curl -fsSL https://get.docker.com -o get-docker.sh
    sudo sh get-docker.sh
-   
-   # Install Docker Compose
-   sudo curl -L "https://github.com/docker/compose/releases/download/v2.20.0/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
-   sudo chmod +x /usr/local/bin/docker-compose
+   sudo usermod -aG docker $USER
    ```
 
-2. **Deploy the application**
+3. **Deploy Application**
    ```bash
-   # Clone repository
-   git clone <repository-url>
-   cd Bank_Project
-   
-   # Configure environment
-   cp backend/env.template backend/.env
-   nano backend/.env  # Edit with your settings
-   
-   # Start services
-   docker-compose up --build -d
+   # Create environment file
+   cat > ~/bluebank.env << 'EOF'
+   DATABASE_URL=postgresql://postgres:password@your-rds-endpoint:5432/postgres?sslmode=require
+   GOOGLE_CLIENT_ID=your-google-client-id.apps.googleusercontent.com
+   GOOGLE_CLIENT_SECRET=your-google-client-secret
+   GOOGLE_REDIRECT_URI=https://yourdomain.com/oauth-callback
+   FACEBOOK_APP_ID=your-facebook-app-id
+   FACEBOOK_APP_SECRET=your-facebook-app-secret
+   FACEBOOK_REDIRECT_URI=https://yourdomain.com/oauth-callback
+   ENVIRONMENT=production
+   DEBUG=false
+   EOF
+
+   # Run container
+   sudo docker run -d --name bluebank -p 80:80 --env-file ~/bluebank.env chenhexu/bluebank:latest
    ```
 
-3. **Set up reverse proxy (nginx)**
-   ```nginx
-   server {
-       listen 80;
-       server_name your-domain.com;
-       
-       location / {
-           proxy_pass http://localhost:3000;
-           proxy_set_header Host $host;
-           proxy_set_header X-Real-IP $remote_addr;
-       }
-       
-       location /api {
-           proxy_pass http://localhost:8000;
-           proxy_set_header Host $host;
-           proxy_set_header X-Real-IP $remote_addr;
-       }
-   }
-   ```
+### AWS EC2
 
-### Option 2: AWS EC2
-
-1. **Launch EC2 instance**
-   - Choose Ubuntu 20.04 LTS
+1. **Launch EC2 Instance**
+   - Ubuntu 20.04 LTS
    - t3.medium or larger
    - Configure security groups (ports 22, 80, 443)
 
@@ -100,49 +114,22 @@ docker-compose -f docker-compose.dev.yml up --build -d
    sudo usermod -aG docker $USER
    ```
 
-3. **Deploy application**
+3. **Deploy Application**
    ```bash
-   git clone <repository-url>
+   git clone https://github.com/chenhexu/Bank_Project.git
    cd Bank_Project
-   cp backend/env.template backend/.env
-   # Edit backend/.env with production settings
-   docker-compose up --build -d
+   # Configure environment and run
+   docker run -d -p 80:80 --name bluebank --env-file ~/bluebank.env chenhexu/bluebank:latest
    ```
 
-### Option 3: Google Cloud Platform
+### DigitalOcean Droplet
 
-1. **Create Compute Engine instance**
-   ```bash
-   gcloud compute instances create bluebank \
-     --zone=us-central1-a \
-     --machine-type=e2-medium \
-     --image-family=ubuntu-2004-lts \
-     --image-project=ubuntu-os-cloud
-   ```
-
-2. **Install and deploy**
-   ```bash
-   # SSH into instance
-   gcloud compute ssh bluebank --zone=us-central1-a
-   
-   # Install Docker
-   curl -fsSL https://get.docker.com -o get-docker.sh
-   sudo sh get-docker.sh
-   
-   # Deploy application
-   git clone <repository-url>
-   cd Bank_Project
-   docker-compose up --build -d
-   ```
-
-### Option 4: DigitalOcean Droplet
-
-1. **Create droplet**
-   - Choose Ubuntu 20.04
+1. **Create Droplet**
+   - Ubuntu 20.04
    - Basic plan ($12/month minimum)
    - Add SSH key
 
-2. **Deploy application**
+2. **Deploy Application**
    ```bash
    # SSH into droplet
    ssh root@your-droplet-ip
@@ -152,29 +139,35 @@ docker-compose -f docker-compose.dev.yml up --build -d
    sh get-docker.sh
    
    # Deploy BlueBank
-   git clone <repository-url>
-   cd Bank_Project
-   docker-compose up --build -d
+   docker run -d -p 80:80 --name bluebank --env-file ~/bluebank.env chenhexu/bluebank:latest
    ```
 
-## 🔐 Production Configuration
+## Production Configuration
 
 ### Environment Variables
-Create `backend/.env` with production settings:
+Create production environment file:
 
 ```env
 # Database (use PostgreSQL for production)
-DATABASE_URL="postgresql://user:password@localhost/bluebank"
+DATABASE_URL=postgresql://user:password@your-rds-endpoint:5432/database?sslmode=require
+
+# Google OAuth
+GOOGLE_CLIENT_ID=your-google-client-id.apps.googleusercontent.com
+GOOGLE_CLIENT_SECRET=your-google-client-secret
+GOOGLE_REDIRECT_URI=https://yourdomain.com/oauth-callback
+
+# Facebook OAuth
+FACEBOOK_APP_ID=your-facebook-app-id
+FACEBOOK_APP_SECRET=your-facebook-app-secret
+FACEBOOK_REDIRECT_URI=https://yourdomain.com/oauth-callback
 
 # Email Configuration
-GMAIL_EMAIL="your-production-email@gmail.com"
-GMAIL_APP_PASSWORD="your-app-password"
-
-
+GMAIL_EMAIL=your-production-email@gmail.com
+GMAIL_APP_PASSWORD=your-app-password
 
 # Application Settings
-DEBUG=false
 ENVIRONMENT=production
+DEBUG=false
 ```
 
 ### SSL/HTTPS Setup
@@ -184,7 +177,7 @@ ENVIRONMENT=production
    sudo apt install certbot python3-certbot-nginx
    ```
 
-2. **Get SSL certificate**
+2. **Get SSL Certificate**
    ```bash
    sudo certbot --nginx -d your-domain.com
    ```
@@ -197,14 +190,9 @@ ENVIRONMENT=production
 
 ### Database Setup
 
-The application uses AWS PostgreSQL cloud database by default. For production deployments, you can use the same cloud database or set up your own PostgreSQL instance:
+The application uses AWS RDS PostgreSQL by default. For custom PostgreSQL:
 
-1. **Using the cloud database (recommended)**
-   ```env
-   DATABASE_URL=postgresql://postgres:aCzZ34x0:f~1Q[]E!o9Fb#okaj5i@bluebank-db.ca76eoy2kz8t.us-east-1.rds.amazonaws.com:5432/postgres
-   ```
-
-2. **For custom PostgreSQL setup, add PostgreSQL service to docker-compose.yml**
+1. **Add PostgreSQL service to docker-compose.yml**
    ```yaml
    services:
      postgres:
@@ -219,53 +207,108 @@ The application uses AWS PostgreSQL cloud database by default. For production de
          - "5432:5432"
    ```
 
-3. **Update backend requirements.txt**
-   ```
-   psycopg2-binary==2.9.5
+2. **Update DATABASE_URL**
+   ```env
+   DATABASE_URL=postgresql://bluebank:your-secure-password@postgres:5432/bluebank
    ```
 
-## 📊 Monitoring & Logging
+## Monitoring & Logging
 
 ### Basic Monitoring
 ```bash
 # Check container status
-docker-compose ps
+docker ps
 
 # View logs
-docker-compose logs -f
+docker logs bluebank
 
 # Monitor resources
-docker stats
+docker stats bluebank
 ```
 
-### Advanced Monitoring
-1. **Prometheus + Grafana**
-   ```yaml
-   # Add to docker-compose.yml
-   prometheus:
-     image: prom/prometheus
-     ports:
-       - "9090:9090"
-   
-   grafana:
-     image: grafana/grafana
-     ports:
-       - "3001:3000"
+### Health Checks
+```bash
+# Check application health
+curl http://localhost/api/health
+
+# Check database connection
+curl http://localhost/api/user-count
+```
+
+## Security Best Practices
+
+1. **Firewall Configuration**
+   ```bash
+   # Allow only necessary ports
+   sudo ufw allow 22    # SSH
+   sudo ufw allow 80    # HTTP
+   sudo ufw allow 443   # HTTPS
+   sudo ufw enable
    ```
 
-2. **ELK Stack for logging**
-   ```yaml
-   elasticsearch:
-     image: docker.elastic.co/elasticsearch/elasticsearch:7.17.0
+2. **Regular Updates**
+   ```bash
+   # Update system
+   sudo apt update && sudo apt upgrade -y
    
-   logstash:
-     image: docker.elastic.co/logstash/logstash:7.17.0
-   
-   kibana:
-     image: docker.elastic.co/kibana/kibana:7.17.0
+   # Update Docker images
+   docker pull chenhexu/bluebank:latest
+   docker stop bluebank
+   docker rm bluebank
+   docker run -d -p 80:80 --name bluebank --env-file ~/bluebank.env chenhexu/bluebank:latest
    ```
 
-## 🔄 CI/CD Pipeline
+3. **Backup Strategy**
+   ```bash
+   # Backup application
+   tar -czf bluebank-backup-$(date +%Y%m%d).tar.gz .
+   ```
+
+## Troubleshooting
+
+### Common Issues
+
+1. **Container won't start**
+   ```bash
+   # Check logs
+   docker logs bluebank
+   
+   # Check if Docker is running
+   docker info
+   ```
+
+2. **Port conflicts**
+   ```bash
+   # Check what's using ports
+   sudo netstat -tulpn | grep :80
+   sudo netstat -tulpn | grep :443
+   ```
+
+3. **Database connection issues**
+   - Verify `DATABASE_URL` environment variable
+   - Check network connectivity to database
+   - Ensure database credentials are valid
+
+4. **OAuth not working**
+   - Verify redirect URIs match exactly
+   - Check client ID and secret
+   - Ensure domain is configured in OAuth providers
+
+### Performance Tuning
+
+1. **Database optimization**
+   ```sql
+   -- Add indexes
+   CREATE INDEX idx_users_email ON users(email);
+   CREATE INDEX idx_transactions_username ON transactions(username);
+   ```
+
+2. **Application optimization**
+   - Use production database (AWS RDS)
+   - Enable SSL/TLS
+   - Configure proper CORS origins
+
+## CI/CD Pipeline
 
 ### GitHub Actions Example
 ```yaml
@@ -290,117 +333,15 @@ jobs:
         script: |
           cd /path/to/bluebank
           git pull
-          docker-compose down
-          docker-compose up --build -d
+          docker stop bluebank
+          docker rm bluebank
+          docker run -d -p 80:80 --name bluebank --env-file ~/bluebank.env chenhexu/bluebank:latest
 ```
 
-## 🛡️ Security Best Practices
-
-1. **Firewall Configuration**
-   ```bash
-   # Allow only necessary ports
-   sudo ufw allow 22    # SSH
-   sudo ufw allow 80    # HTTP
-   sudo ufw allow 443   # HTTPS
-   sudo ufw enable
-   ```
-
-2. **Regular Updates**
-   ```bash
-   # Update system
-   sudo apt update && sudo apt upgrade -y
-   
-   # Update Docker images
-   docker-compose pull
-   docker-compose up -d
-   ```
-
-3. **Backup Strategy**
-   ```bash
-   # Backup database
-   docker-compose exec postgres pg_dump -U bluebank bluebank > backup.sql
-   
-   # Backup application
-   tar -czf bluebank-backup-$(date +%Y%m%d).tar.gz .
-   ```
-
-## 📈 Scaling
-
-### Horizontal Scaling
-```yaml
-# docker-compose.yml
-services:
-  frontend:
-    deploy:
-      replicas: 3
-  
-  backend:
-    deploy:
-      replicas: 3
-```
-
-### Load Balancer
-```nginx
-upstream backend {
-    server backend1:8000;
-    server backend2:8000;
-    server backend3:8000;
-}
-
-upstream frontend {
-    server frontend1:3000;
-    server frontend2:3000;
-    server frontend3:3000;
-}
-```
-
-## 🆘 Troubleshooting
-
-### Common Issues
-
-1. **Port conflicts**
-   ```bash
-   # Check what's using ports
-   sudo netstat -tulpn | grep :80
-   sudo netstat -tulpn | grep :443
-   ```
-
-2. **Docker daemon issues**
-   ```bash
-   # Restart Docker
-   sudo systemctl restart docker
-   ```
-
-3. **Disk space**
-   ```bash
-   # Clean up Docker
-   docker system prune -a
-   ```
-
-### Performance Tuning
-
-1. **Database optimization**
-   ```sql
-   -- Add indexes
-   CREATE INDEX idx_users_email ON users(email);
-   CREATE INDEX idx_transactions_username ON transactions(username);
-   ```
-
-2. **Application optimization**
-   ```python
-   # Add caching
-   from fastapi_cache import FastAPICache
-   from fastapi_cache.backends.redis import RedisBackend
-   ```
-
-## 📞 Support
+## Support
 
 For deployment issues:
-1. Check logs: `docker-compose logs -f`
-2. Verify configuration: `docker-compose config`
-3. Restart services: `docker-compose restart`
-4. Clean rebuild: `docker-compose down && docker-compose up --build -d`
-
----
-
-**Happy deploying! 🚀** 
+1. Check logs: `docker logs bluebank`
+2. Verify configuration: Check environment variables
+3. Restart services: `docker restart bluebank`
+4. Clean rebuild: `docker stop bluebank && docker rm bluebank && docker run -d -p 80:80 --name bluebank --env-file ~/bluebank.env chenhexu/bluebank:latest`

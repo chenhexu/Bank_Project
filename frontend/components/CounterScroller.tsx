@@ -15,6 +15,13 @@ function stripLeadingZeros(str: string) {
   return decPart !== undefined ? `${stripped}.${decPart}` : stripped;
 }
 
+function formatNumberWithCommas(num: number): string {
+  return num.toLocaleString('en-US', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  });
+}
+
 // DigitRoller: animates a single digit rolling from prev to next
 function DigitRoller({ prev, next, duration }: { prev: string; next: string; duration: number }) {
   const [digitArray, setDigitArray] = useState<string[]>([prev]);
@@ -77,21 +84,44 @@ function DigitRoller({ prev, next, duration }: { prev: string; next: string; dur
 export default function CounterScroller({
   from,
   to,
-  duration = 5000,
+  duration = 1000,
   minDigits = 6,
 }: CounterScrollerProps) {
   const [displayValue, setDisplayValue] = useState(from);
-  const [prevDigits, setPrevDigits] = useState<string[]>(from.toFixed(2).padStart(minDigits + 3, "0").split(""));
-  const rafRef = useRef<number | null>(null);
+  const [isAnimating, setIsAnimating] = useState(false);
 
   useEffect(() => {
-    setDisplayValue(to);
-  }, [to]);
+    if (from === to) {
+      setDisplayValue(to);
+      return;
+    }
 
-  // Format and strip leading zeros
-  let currStr = displayValue.toFixed(2).padStart(minDigits + 3, "0");
-  currStr = stripLeadingZeros(currStr);
-  const prevStr = stripLeadingZeros(prevDigits.join(""));
+    setIsAnimating(true);
+    const startTime = Date.now();
+    const startValue = from;
+    const endValue = to;
+    const difference = endValue - startValue;
+
+    const animate = () => {
+      const elapsed = Date.now() - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      
+      // Use easing function for smooth animation
+      const easeOutCubic = 1 - Math.pow(1 - progress, 3);
+      const currentValue = startValue + (difference * easeOutCubic);
+      
+      setDisplayValue(currentValue);
+      
+      if (progress < 1) {
+        requestAnimationFrame(animate);
+      } else {
+        setDisplayValue(endValue);
+        setIsAnimating(false);
+      }
+    };
+
+    requestAnimationFrame(animate);
+  }, [from, to, duration]);
 
   return (
     <span
@@ -102,10 +132,11 @@ export default function CounterScroller({
         flexDirection: "row",
         alignItems: "flex-end",
         justifyContent: "center",
+        transition: isAnimating ? "none" : "all 0.3s ease",
       }}
     >
       <span className="select-none" style={{ marginRight: '0.2em', fontWeight: 900 }}>$</span>
-      <span>{displayValue.toFixed(2)}</span>
+      <span>{formatNumberWithCommas(displayValue)}</span>
     </span>
   );
 } 

@@ -48,6 +48,13 @@ export default function WithdrawPage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.detail || "Withdraw failed");
       setMessage(`✅ ${data.message}. New balance: $${data.new_balance}`);
+      
+      // Trigger a balance update event
+      window.dispatchEvent(new StorageEvent('storage', {
+        key: 'balance_updated',
+        newValue: Date.now().toString()
+      }));
+      
       setTimeout(() => {
         router.push(`/balance`);
       }, 1000);
@@ -60,7 +67,7 @@ export default function WithdrawPage() {
   };
 
   return (
-    <div className={`min-h-screen flex items-center justify-center bg-gradient-to-br ${isDarkMode ? 'from-gray-900 via-gray-800 to-gray-900' : 'from-blue-100 via-white to-blue-200'}`}>
+    <div className={`min-h-screen flex items-center justify-center bg-gradient-to-br ${isDarkMode ? 'from-blue-950 via-gray-900 to-blue-950' : 'from-blue-100 via-white to-blue-200'}`}>
       <div className={`${isDarkMode ? 'bg-gray-800/90' : 'bg-white/90'} shadow-xl rounded-3xl px-10 py-12 max-w-md w-full flex flex-col items-center`}>
         <div className="mb-8 flex flex-col items-center">
           <div className={`text-3xl font-extrabold mb-2 tracking-tight ${isDarkMode ? 'text-blue-400' : 'text-blue-700'}`}>Withdraw Funds</div>

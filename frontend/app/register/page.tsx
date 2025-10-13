@@ -489,6 +489,11 @@ export default function Register() {
         // Store user credentials for session
         sessionStorage.setItem("email", result.user_profile.email);
         sessionStorage.setItem("password", "FACEBOOK_OAUTH_USER_NO_PASSWORD"); // Special marker for OAuth users
+        sessionStorage.setItem("authToken", result.access_token); // Store the access token
+        sessionStorage.setItem("user", JSON.stringify(result.user_profile)); // Store user_profile instead of full result
+        sessionStorage.setItem("timestamp", Date.now().toString());
+        sessionStorage.setItem("provider", "facebook");
+        sessionStorage.setItem("version", "1.0");
         
         // Store user data in localStorage
         localStorage.setItem("user", JSON.stringify(result));
@@ -514,7 +519,7 @@ export default function Register() {
   return (
     <div className={`min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 ${
       isDarkMode 
-        ? 'bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900' 
+        ? 'bg-gradient-to-br from-blue-950 via-gray-900 to-blue-950' 
         : 'bg-gradient-to-br from-blue-100 via-white to-blue-200'
     }`}>
       <div className={`max-w-2xl w-full space-y-8 ${
@@ -540,7 +545,7 @@ export default function Register() {
             type="button"
             onClick={handleGoogleSignUp}
             disabled={!isGoogleReady || isGoogleLoading || isLoading}
-            className={`w-full flex justify-center items-center px-4 py-4 border border-blue-300 rounded-xl shadow-sm bg-white text-base font-medium text-gray-700 hover:bg-blue-50 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed ${
+            className={`w-full flex justify-center items-center px-4 py-4 border rounded-xl shadow-sm text-base font-medium transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed ${
               isDarkMode 
                 ? 'border-blue-400 bg-gray-700 text-white hover:bg-blue-900/20' 
                 : 'border-blue-300 bg-white text-gray-900 hover:bg-blue-50'
@@ -559,7 +564,7 @@ export default function Register() {
             type="button"
             onClick={handleFacebookSignUp}
             disabled={!isFacebookReady || isFacebookLoading || isLoading || requiresHttps}
-            className={`w-full flex justify-center items-center px-4 py-4 border border-blue-300 rounded-xl shadow-sm bg-white text-base font-medium text-gray-700 hover:bg-blue-50 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed ${
+            className={`w-full flex justify-center items-center px-4 py-4 border rounded-xl shadow-sm text-base font-medium transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed ${
               isDarkMode 
                 ? 'border-blue-400 bg-gray-700 text-white hover:bg-blue-900/20' 
                 : 'border-blue-300 bg-white text-gray-900 hover:bg-blue-50'

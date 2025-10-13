@@ -1,82 +1,126 @@
-# 🚀 Quick Start Guide
+# Quick Start Guide
 
-## For New Users
-
-### Prerequisites
+## Prerequisites
 - [Docker Desktop](https://www.docker.com/products/docker-desktop/) installed and running
 - 4GB+ RAM recommended
 
-### Step 1: Clone the Repository
+## Option 1: Docker (Recommended)
+
+### Run from Docker Hub
 ```bash
-git clone https://github.com/yourusername/bluebank.git
-cd bluebank
+# One command to get started
+docker run -d -p 8080:80 --name bluebank chenhexu/bluebank:latest
+
+# Access the application
+# Frontend: http://localhost:8080
+# API Docs: http://localhost:8080/docs
 ```
 
-### Step 2: Start the Application
-
-**Windows:**
+### Stop the application
 ```bash
-# One-command setup
-start.bat
-
-# Or use PowerShell
-.\setup.ps1
+docker stop bluebank
+docker rm bluebank
 ```
 
-**Linux/Mac:**
-```bash
-# Make scripts executable
-chmod +x start.sh setup.sh
+## Option 2: Local Development
 
-# One-command setup
-./start.sh
+### Step 1: Clone and Setup
+```bash
+git clone https://github.com/chenhexu/Bank_Project.git
+cd Bank_Project
 ```
 
-### Step 3: Access the Application
-- 🌐 **Frontend**: http://localhost:3000
-- 🔧 **Backend API**: http://localhost:8000
-- 📚 **API Documentation**: http://localhost:8000/docs
+### Step 2: Backend Setup
+```bash
+cd backend
+cp env.template .env
+# Edit .env with your database and OAuth settings (optional)
+python -m uvicorn main:app --reload --port 8000
+```
 
-### Step 4: Create Your First Account
-1. Open http://localhost:3000
-2. Click "Sign up"
-3. Register with your email and password
-4. Start using the banking features!
+### Step 3: Frontend Setup
+```bash
+# In another terminal
+cd frontend
+npm install
+npm run dev
+```
+
+### Step 4: Access the Application
+- Frontend: http://localhost:3000
+- Backend API: http://localhost:8000
+- API Documentation: http://localhost:8000/docs
+
+## Option 3: Docker Compose
+
+### Development with Hot Reload
+```bash
+docker-compose -f docker/docker-compose.dev.yml up --build -d
+```
+
+### Production Mode
+```bash
+docker-compose -f docker/docker-compose.yml up --build -d
+```
+
+## First Steps
+
+1. **Create Account**: Register with email and password
+2. **Test OAuth**: Try Google/Facebook sign-in (if configured)
+3. **Banking Operations**: Test deposit, withdraw, and transfer
+4. **Explore Features**: Check transaction history and profile
+
+## Configuration
+
+### Environment Variables
+Copy `backend/env.template` to `backend/.env` and configure:
+
+```env
+# Required
+DATABASE_URL=postgresql://user:password@host:port/database?sslmode=require
+
+# Optional - OAuth
+GOOGLE_CLIENT_ID=your-google-client-id.apps.googleusercontent.com
+GOOGLE_CLIENT_SECRET=your-google-client-secret
+GOOGLE_REDIRECT_URI=http://localhost:8080/oauth-callback
+
+# Optional - Email
+GMAIL_EMAIL=your-email@gmail.com
+GMAIL_APP_PASSWORD=your-app-password
+```
 
 ## Troubleshooting
 
-### If Docker isn't running:
+### Docker Issues
 ```bash
-# Start Docker Desktop first, then run:
-docker-compose up --build -d
+# Check if Docker is running
+docker info
+
+# View container logs
+docker logs bluebank
+
+# Restart container
+docker restart bluebank
 ```
 
-### If ports are in use:
+### Port Conflicts
 ```bash
-# Stop existing containers
-docker-compose down
+# Check what's using port 8080
+netstat -ano | findstr :8080  # Windows
+lsof -i :8080                 # Linux/macOS
 
-# Start fresh
-docker-compose up --build -d
+# Use different port
+docker run -d -p 8081:80 --name bluebank chenhexu/bluebank:latest
 ```
 
-### View logs:
-```bash
-# All services
-docker-compose logs -f
+### Database Issues
+- Verify `DATABASE_URL` in environment variables
+- Check network connectivity to database
+- Ensure database credentials are correct
 
-# Specific service
-docker-compose logs -f backend
-docker-compose logs -f frontend
-```
+## Next Steps
 
-## Development Mode
-For development with hot reloading:
-```bash
-docker-compose -f docker-compose.dev.yml up --build -d
-```
-
-## Stop the Application
-```bash
-docker-compose down
-``` 
+- [Deployment Guide](DEPLOYMENT.md) - Deploy to production
+- [Google OAuth Setup](GOOGLE_OAUTH_SETUP.md) - Configure Google sign-in
+- [Facebook OAuth Setup](FACEBOOK_OAUTH_SETUP.md) - Configure Facebook sign-in
+- [AWS Deployment](AWS_DEPLOYMENT.md) - Deploy to AWS

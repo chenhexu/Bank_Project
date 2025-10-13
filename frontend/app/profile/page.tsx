@@ -6,7 +6,7 @@ import { useDarkMode } from "../../contexts/DarkModeContext";
 import { useGoogleAuth } from "../../hooks/useGoogleAuth";
 import { useFacebookAuth } from "../../hooks/useFacebookAuth";
 
-function Modal({ open, onClose, title, value, onChange, onSave, type = "text", confirmValue = "", onConfirmChange = null }) {
+function Modal({ open, onClose, title, value, onChange, onSave, type = "text", confirmValue = "", onConfirmChange = null, isDarkMode = false }) {
   if (!open) return null;
   
   const isPasswordModal = title === "Password Setup" || title === "Change Password";
@@ -20,7 +20,9 @@ function Modal({ open, onClose, title, value, onChange, onSave, type = "text", c
         {isPasswordModal ? (
           <div className="w-full space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className={`block text-sm font-medium mb-2 ${
+                isDarkMode ? 'text-gray-300' : 'text-gray-700'
+              }`}>
                 {title === "Change Password" ? "New Password" : "Password"}
               </label>
               <input
@@ -32,7 +34,9 @@ function Modal({ open, onClose, title, value, onChange, onSave, type = "text", c
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className={`block text-sm font-medium mb-2 ${
+                isDarkMode ? 'text-gray-300' : 'text-gray-700'
+              }`}>
                 Confirm Password
               </label>
               <input
@@ -70,7 +74,11 @@ function Modal({ open, onClose, title, value, onChange, onSave, type = "text", c
         )}
         
         <div className="flex gap-4 w-full justify-end mt-6">
-          <button onClick={onClose} className="px-5 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold">Cancel</button>
+          <button onClick={onClose} className={`px-5 py-2 rounded-lg font-semibold ${
+          isDarkMode 
+            ? 'bg-gray-700 hover:bg-gray-600 text-gray-300' 
+            : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
+        }`}>Cancel</button>
           <button onClick={onSave} className="px-5 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-semibold">
             {isPasswordModal ? "Set Password" : "Save"}
           </button>
@@ -95,6 +103,8 @@ export default function ProfilePage() {
   const [authProvider, setAuthProvider] = useState("email"); // email, google, facebook
   const [linkingStatus, setLinkingStatus] = useState("");
   const [isLinking, setIsLinking] = useState(false);
+  const [notificationHistory, setNotificationHistory] = useState<string[]>([]);
+  const [activeSection, setActiveSection] = useState('general');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Modal state
@@ -150,6 +160,18 @@ export default function ProfilePage() {
         .finally(() => {
           setLoading(false);
         });
+
+      // Load notification history from localStorage
+      const currentUserEmail = sessionStorage.getItem('email');
+      const clearedKey = currentUserEmail ? `clearedNotifications_${currentUserEmail}` : 'clearedNotifications';
+      const storedCleared = localStorage.getItem(clearedKey);
+      if (storedCleared) {
+        try {
+          setNotificationHistory(JSON.parse(storedCleared));
+        } catch (e) {
+          console.log('Error parsing notification history:', e);
+        }
+      }
     }
   }, [router]);
 
@@ -414,7 +436,7 @@ export default function ProfilePage() {
   return (
     <div className={`min-h-screen flex transition-colors duration-200 ${
       isDarkMode 
-        ? 'bg-gradient-to-br from-gray-900 via-blue-900/20 to-gray-800' 
+        ? 'bg-gradient-to-br from-blue-950 via-gray-900 to-blue-950' 
         : 'bg-gradient-to-br from-blue-100 via-white to-blue-200'
     }`}>
       {/* Sidebar */}
@@ -427,11 +449,36 @@ export default function ProfilePage() {
         <nav className="w-full flex-1">
           <ul className="space-y-2">
             <li>
-              <a href="#" className={`block px-4 py-3 rounded-xl font-semibold text-center transition-colors duration-200 ${
-                isDarkMode 
-                  ? 'bg-blue-900/50 text-blue-300' 
-                  : 'bg-blue-100 text-blue-700'
-              }`}>General</a>
+              <button 
+                onClick={() => setActiveSection('general')}
+                className={`w-full block px-4 py-3 rounded-xl font-semibold text-center transition-colors duration-200 ${
+                  activeSection === 'general'
+                    ? (isDarkMode 
+                        ? 'bg-blue-900/50 text-blue-300' 
+                        : 'bg-blue-100 text-blue-700')
+                    : (isDarkMode 
+                        ? 'hover:bg-gray-700 text-gray-300' 
+                        : 'hover:bg-gray-100 text-gray-700')
+                }`}
+              >
+                General
+              </button>
+            </li>
+            <li>
+              <button 
+                onClick={() => setActiveSection('notification-history')}
+                className={`w-full block px-4 py-3 rounded-xl font-semibold text-center transition-colors duration-200 ${
+                  activeSection === 'notification-history'
+                    ? (isDarkMode 
+                        ? 'bg-blue-900/50 text-blue-300' 
+                        : 'bg-blue-100 text-blue-700')
+                    : (isDarkMode 
+                        ? 'hover:bg-gray-700 text-gray-300' 
+                        : 'hover:bg-gray-100 text-gray-700')
+                }`}
+              >
+                Notification History
+              </button>
             </li>
             {/* Add more menu items here in the future */}
           </ul>
@@ -476,6 +523,9 @@ export default function ProfilePage() {
           <div className={`w-full max-w-3xl rounded-3xl shadow-xl p-14 flex flex-col items-center transition-colors duration-200 ${
             isDarkMode ? 'bg-gray-800/90' : 'bg-white/90'
           }`}>
+          {/* General Section */}
+          {activeSection === 'general' && (
+            <>
           {/* Profile Card */}
           <div className={`w-full rounded-2xl shadow p-8 mb-10 flex flex-col items-center relative transition-colors duration-200 ${
             isDarkMode ? 'bg-gray-700' : 'bg-white'
@@ -765,6 +815,87 @@ export default function ProfilePage() {
               </button>
             </div>
           </div>
+            </>
+          )}
+
+          {/* Notification History Section */}
+          {activeSection === 'notification-history' && (
+            <div id="notification-history" className={`w-full rounded-2xl shadow p-8 flex flex-col gap-6 transition-colors duration-200 ${
+              isDarkMode ? 'bg-gray-700' : 'bg-white'
+            }`}>
+            <div className={`text-xl font-bold mb-2 ${
+              isDarkMode ? 'text-gray-200' : 'text-gray-800'
+            }`}>Notification History</div>
+            
+            {notificationHistory.length === 0 ? (
+              <div className={`text-center py-8 ${
+                isDarkMode ? 'text-gray-400' : 'text-gray-500'
+              }`}>
+                <div className="text-4xl mb-4">🔔</div>
+                <p>No cleared notifications yet</p>
+                <p className="text-sm mt-2">Notifications you clear will appear here</p>
+              </div>
+            ) : (
+              <div className="space-y-3 max-h-96 overflow-y-auto custom-scrollbar">
+                {notificationHistory.map((notification, index) => (
+                  <div
+                    key={index}
+                    className={`p-4 rounded-lg border ${
+                      isDarkMode 
+                        ? 'bg-gray-600 border-gray-500' 
+                        : 'bg-gray-50 border-gray-200'
+                    }`}
+                  >
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <p className={`text-sm ${
+                          isDarkMode ? 'text-gray-200' : 'text-gray-800'
+                        }`}>
+                          {notification}
+                        </p>
+                        <p className={`text-xs mt-1 ${
+                          isDarkMode ? 'text-gray-400' : 'text-gray-500'
+                        }`}>
+                          Cleared notification
+                        </p>
+                      </div>
+                      <div className={`text-xs ${
+                        isDarkMode ? 'text-gray-400' : 'text-gray-500'
+                      }`}>
+                        📋
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+            
+            {notificationHistory.length > 0 && (
+              <div className="flex justify-between items-center pt-4 border-t border-gray-200 dark:border-gray-600">
+                <span className={`text-sm ${
+                  isDarkMode ? 'text-gray-400' : 'text-gray-500'
+                }`}>
+                  {notificationHistory.length} cleared notification{notificationHistory.length !== 1 ? 's' : ''}
+                </span>
+                <button
+                  onClick={() => {
+                    const currentUserEmail = sessionStorage.getItem('email');
+                    const clearedKey = currentUserEmail ? `clearedNotifications_${currentUserEmail}` : 'clearedNotifications';
+                    localStorage.removeItem(clearedKey);
+                    setNotificationHistory([]);
+                  }}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    isDarkMode 
+                      ? 'bg-red-700 hover:bg-red-600 text-white' 
+                      : 'bg-red-100 hover:bg-red-200 text-red-700'
+                  }`}
+                >
+                  Clear History
+                </button>
+              </div>
+            )}
+            </div>
+          )}
         </div>
         )}
       </main>
@@ -779,6 +910,7 @@ export default function ProfilePage() {
         type={modalField === "Email" ? "email" : modalField === "Phone Number" ? "tel" : "text"}
         confirmValue={modalConfirmValue}
         onConfirmChange={setModalConfirmValue}
+        isDarkMode={isDarkMode}
       />
     </div>
   );

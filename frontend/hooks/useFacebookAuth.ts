@@ -16,6 +16,7 @@ interface FacebookUser {
 interface FacebookAuthResponse {
   message: string;
   user_profile: FacebookUser;
+  access_token: string;
 }
 
 interface FacebookLoginResponse {

@@ -40,25 +40,28 @@ class SessionManager {
       this.updateSessionStatus();
     }, 5000);
 
-    // Add testing logs - more frequent during warning period
+    // Add testing logs - every 30 seconds with clean numbers
     this.testLogInterval = setInterval(() => {
       const now = Date.now();
       const timeRemaining = this.SESSION_TIMEOUT - (now - this.lastActivity);
       const minutesLeft = Math.floor(timeRemaining / (60 * 1000));
       const secondsLeft = Math.floor((timeRemaining % (60 * 1000)) / 1000);
       
-      // Log more frequently during warning period (last 2 minutes)
-      const isWarningPeriod = timeRemaining <= this.WARNING_THRESHOLD;
+      // Only log when we have clean numbers (multiples of 30 seconds)
+      const totalSeconds = Math.floor(timeRemaining / 1000);
+      const isCleanNumber = totalSeconds % 30 === 0;
       
-      if (isWarningPeriod || minutesLeft % 1 === 0) { // Every minute normally, every 10s during warning
-        console.log(`🕐 Session Status: ${minutesLeft}m ${secondsLeft}s remaining (${this.isActive ? 'ACTIVE' : 'INACTIVE'})${isWarningPeriod ? ' ⚠️ WARNING' : ''}`);
+      // Log every 30 seconds, but only show clean numbers
+      if (isCleanNumber && totalSeconds > 0) {
+        const isWarningPeriod = timeRemaining <= this.WARNING_THRESHOLD;
+        console.log(`🕐 Session Status: ${minutesLeft}:${secondsLeft.toString().padStart(2, '0')} remaining (${this.isActive ? 'ACTIVE' : 'INACTIVE'})${isWarningPeriod ? ' ⚠️ WARNING' : ''}`);
       }
-    }, 10000); // Every 10 seconds for more accurate logging
+    }, 5000); // Check every 5 seconds to catch the 30-second marks
 
 
     
     console.log('🔵 Session manager started - 15 min timeout with button-click detection');
-    console.log('🕐 Session Status: 15m 0s remaining (ACTIVE) - Updates every 5s, 1s countdown in last 30s');
+    console.log('🕐 Session Status: 15:00 remaining (ACTIVE) - Logs every 30s, 1s countdown in last 30s');
   }
 
   public stop(): void {

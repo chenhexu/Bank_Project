@@ -16,6 +16,7 @@ interface GoogleUser {
 interface GoogleAuthResponse {
   message: string;
   user_profile: GoogleUser;
+  access_token: string;
 }
 
 declare global {

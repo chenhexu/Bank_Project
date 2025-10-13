@@ -1,17 +1,45 @@
+"use client";
+
+import { useDarkMode } from "../contexts/DarkModeContext";
+
 export default function HomePage() {
+  const { isDarkMode } = useDarkMode();
+  
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-100 via-white to-blue-200">
-      <div className="bg-white/90 shadow-xl rounded-3xl px-10 py-12 max-w-md w-full flex flex-col items-center">
+    <div className={`min-h-screen flex items-center justify-center ${
+      isDarkMode 
+        ? 'bg-gray-900' // Simple dark background to match device
+        : 'bg-gray-50'  // Simple light background to match device
+    }`}>
+      <div className={`shadow-xl rounded-3xl px-10 py-12 max-w-md w-full flex flex-col items-center transition-colors duration-200 ${
+        isDarkMode ? 'bg-gray-800/90' : 'bg-white/90'
+      }`}>
         <div className="mb-8 flex flex-col items-center">
-          <div className="text-5xl font-extrabold text-blue-700 mb-2 tracking-tight">BlueBank</div>
-          <div className="text-lg text-blue-500 font-medium mb-2">Your modern digital banking experience</div>
-          <div className="text-sm text-gray-400">Safe. Simple. Secure.</div>
+          <div className={`text-5xl font-extrabold mb-2 tracking-tight ${
+            isDarkMode ? 'text-blue-400' : 'text-blue-700'
+          }`}>BlueBank</div>
+          <div className={`text-lg font-medium mb-2 ${
+            isDarkMode ? 'text-blue-300' : 'text-blue-500'
+          }`}>Your modern digital banking experience</div>
+          <div className={`text-sm ${
+            isDarkMode ? 'text-gray-300' : 'text-gray-400'
+          }`}>Safe. Simple. Secure.</div>
         </div>
         <div className="flex flex-col gap-4 w-full mt-4">
-          <a href="/login" className="w-full text-center py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-lg shadow transition">Login</a>
-          <a href="/register" className="w-full text-center py-3 rounded-xl bg-white border border-blue-600 hover:bg-blue-50 text-blue-700 font-semibold text-lg shadow transition">Register</a>
+          <a href="/login" className={`w-full text-center py-3 rounded-xl font-semibold text-lg shadow transition ${
+            isDarkMode 
+              ? 'bg-blue-600 hover:bg-blue-700 text-white' 
+              : 'bg-blue-600 hover:bg-blue-700 text-white'
+          }`}>Login</a>
+          <a href="/register" className={`w-full text-center py-3 rounded-xl font-semibold text-lg shadow transition ${
+            isDarkMode 
+              ? 'bg-gray-700 border border-blue-500 hover:bg-gray-600 text-blue-300' 
+              : 'bg-white border border-blue-600 hover:bg-blue-50 text-blue-700'
+          }`}>Register</a>
         </div>
-        <div className="mt-10 text-xs text-gray-400 text-center">
+        <div className={`mt-10 text-xs text-center ${
+          isDarkMode ? 'text-gray-300' : 'text-gray-400'
+        }`}>
           &copy; {new Date().getFullYear()} BlueBank. All rights reserved.
         </div>
       </div>

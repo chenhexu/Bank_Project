@@ -1,54 +1,82 @@
-# 📁 Project Structure
+# Project Structure
 
 ```
 Bank_Project/
-├── 📁 backend/                 # FastAPI backend application
-│   ├── main.py                # Main FastAPI application
-│   ├── requirements.txt       # Python dependencies
-│   ├── Dockerfile            # Backend container configuration
-│   ├── .env                  # Environment variables (auto-created)
-│   └── .env.example         # Environment template
+├── backend/                 # FastAPI backend application
+│   ├── main.py             # Main FastAPI application with API endpoints
+│   ├── models.py           # Database models and schemas
+│   ├── schemas.py          # Pydantic request/response models
+│   ├── auth.py             # Authentication and OAuth logic
+│   ├── database.py         # Database connection and configuration
+│   ├── requirements.txt    # Python dependencies
+│   ├── env.template        # Environment variables template
+│   └── Dockerfile          # Backend container configuration
 │
-├── 📁 frontend/              # Next.js frontend application
-│   ├── app/                  # Next.js app directory
-│   ├── components/           # Reusable React components
-│   ├── contexts/            # React context providers
-│   ├── public/              # Static assets
-│   ├── package.json         # Node.js dependencies
-│   └── Dockerfile           # Frontend container configuration
+├── frontend/               # Next.js frontend application
+│   ├── app/               # Next.js 13+ app directory
+│   │   ├── login/         # Authentication pages
+│   │   ├── register/      # User registration
+│   │   ├── balance/       # Account balance and dashboard
+│   │   ├── deposit/       # Deposit funds page
+│   │   ├── withdraw/      # Withdraw funds page
+│   │   ├── transfer/      # Transfer money page
+│   │   ├── history/       # Transaction history page
+│   │   ├── profile/       # User profile page
+│   │   └── oauth-callback/ # OAuth callback handler
+│   ├── components/        # Reusable React components
+│   │   ├── AnimatedDigit.tsx
+│   │   ├── CounterScroller.tsx
+│   │   └── DigitScroller.tsx
+│   ├── contexts/          # React context providers
+│   │   └── DarkModeContext.tsx
+│   ├── utils/             # Utility functions
+│   │   └── sessionManager.ts
+│   ├── public/            # Static assets
+│   ├── package.json       # Node.js dependencies
+│   └── next.config.mjs    # Next.js configuration
 │
-├── 📁 docker/               # Docker configuration files
-│   ├── docker-compose.yml   # Production Docker setup
+├── docs/                  # Documentation
+│   ├── QUICK_START.md     # Quick start guide
+│   ├── DEPLOYMENT.md      # Deployment instructions
+│   ├── AWS_DEPLOYMENT.md  # AWS deployment guide
+│   ├── GOOGLE_OAUTH_SETUP.md # Google OAuth setup
+│   ├── FACEBOOK_OAUTH_SETUP.md # Facebook OAuth setup
+│   ├── AWS_SETUP_CHECKLIST.md # AWS setup checklist
+│   └── OAUTH_CONNECTION_DIAGRAM.md # OAuth flow diagram
+│
+├── scripts/               # Automation scripts
+│   ├── start.bat          # Windows startup script
+│   ├── start.sh           # Linux/Mac startup script
+│   ├── start-dev.bat      # Windows development script
+│   ├── setup.ps1          # PowerShell setup script
+│   ├── setup.sh           # Linux/Mac setup script
+│   ├── deploy-aws.ps1     # PowerShell AWS deployment
+│   └── deploy-aws.sh      # Linux/Mac AWS deployment
+│
+├── docker/                # Docker configuration files
+│   ├── docker-compose.yml # Production Docker setup
 │   └── docker-compose.dev.yml # Development Docker setup
 │
-├── 📁 scripts/              # Automation scripts
-│   ├── start.bat           # Windows startup script
-│   ├── start.sh            # Linux/Mac startup script
-│   ├── start-dev.bat       # Windows development script
-│   ├── setup.ps1           # PowerShell setup script
-│   ├── setup.sh            # Linux/Mac setup script
-│   ├── deploy-aws.ps1      # PowerShell AWS deployment script
-│   └── deploy-aws.sh       # Linux/Mac AWS deployment script
+├── .ebextensions/         # AWS Elastic Beanstalk configuration
+│   ├── 01_environment.config
+│   ├── 02_application.config
+│   └── 03_platform.config
 │
-├── 📁 docs/                 # Documentation
-│   ├── DEPLOYMENT.md        # Deployment instructions
-│   ├── AWS_DEPLOYMENT.md    # AWS Elastic Beanstalk deployment guide
-│   ├── AWS_SETUP_CHECKLIST.md # AWS setup checklist
-│   └── QUICK_START.md       # Quick start guide
+├── .elasticbeanstalk/     # Elastic Beanstalk application config
+│   └── config.yml
 │
-├── 📁 .ebextensions/        # AWS Elastic Beanstalk configuration
-│   ├── 01_environment.config # Environment and system settings
-│   ├── 02_application.config # Application-specific settings
-│   └── 03_platform.config   # Platform-specific settings
-├── 📁 .elasticbeanstalk/    # Elastic Beanstalk application config
-│   └── config.yml           # EB application configuration
-├── 📄 README.md             # Main project documentation
-├── 📄 PROJECT_STRUCTURE.md  # This file
-├── 📄 package.json          # Project metadata and scripts
-└── 📄 .gitignore           # Git ignore rules
+├── Dockerfile             # Multi-stage Docker build
+├── nginx.conf             # Nginx reverse proxy configuration
+├── supervisord.conf       # Process management configuration
+├── start.sh              # Container startup script
+├── env.production.template # Production environment template
+├── package.json          # Project metadata and scripts
+├── README.md             # Main project documentation
+├── PROJECT_STRUCTURE.md  # This file
+└── .gitignore           # Git ignore rules
 ```
 
-## 🚀 Quick Commands
+## Quick Commands
 
 ### Start the Application
 ```bash
@@ -72,6 +100,18 @@ scripts/start-dev.bat
 npm run dev
 ```
 
+### Docker Commands
+```bash
+# Run from Docker Hub
+docker run -d -p 8080:80 --name bluebank chenhexu/bluebank:latest
+
+# Build from source
+docker build -t bluebank:local .
+
+# View logs
+docker logs bluebank
+```
+
 ### AWS Cloud Deployment
 ```bash
 # Windows (PowerShell)
@@ -82,32 +122,30 @@ chmod +x scripts/deploy-aws.sh
 ./scripts/deploy-aws.sh
 ```
 
-### Stop the Application
-```bash
-# Using npm
-npm run stop
-
-# Direct Docker
-docker-compose -f docker/docker-compose.yml down
-```
-
-## 📋 File Purposes
+## File Purposes
 
 ### Core Application
-- **backend/**: FastAPI backend with banking logic
-- **frontend/**: Next.js frontend with React components
+- **backend/**: FastAPI backend with banking logic, OAuth, and database operations
+- **frontend/**: Next.js frontend with React components and modern UI
 
 ### Configuration
-- **docker/**: Docker Compose configurations
-- **scripts/**: Automation scripts for different platforms
+- **docker/**: Docker Compose configurations for development and production
+- **scripts/**: Automation scripts for different platforms and deployment
 - **.ebextensions/**: AWS Elastic Beanstalk configuration files
 - **.elasticbeanstalk/**: Elastic Beanstalk application settings
 
 ### Documentation
-- **docs/**: Detailed guides and setup instructions
-- **README.md**: Main project overview
+- **docs/**: Detailed guides, setup instructions, and deployment documentation
+- **README.md**: Main project overview and quick start guide
 - **PROJECT_STRUCTURE.md**: This structure guide
 
 ### Environment
+- **env.template**: Template for environment setup (copy to .env)
+- **env.production.template**: Production environment template
 - **.env files**: Environment variables (not in version control)
-- **.env.example**: Template for environment setup 
+
+### Infrastructure
+- **Dockerfile**: Multi-stage Docker build for production deployment
+- **nginx.conf**: Nginx reverse proxy configuration
+- **supervisord.conf**: Process management for containerized services
+- **start.sh**: Container entrypoint script

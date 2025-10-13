@@ -78,7 +78,10 @@ export default function BalancePage() {
   const [displayName, setDisplayName] = useState("");
   const [notifications, setNotifications] = useState<string[]>([]);
   const [showNotifications, setShowNotifications] = useState(false);
+  const [clearedNotifications, setClearedNotifications] = useState<string[]>([]);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const fetchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Helper function to get the correct password for API calls
   const getPasswordForAPI = () => {
@@ -97,6 +100,19 @@ export default function BalancePage() {
       setAnimationFrom(initial);
       setBalance(initial);
       setInitialized(true);
+
+      // Load cleared notifications from localStorage
+      const clearedKey = currentUserEmail ? `clearedNotifications_${currentUserEmail}` : 'clearedNotifications';
+      const storedCleared = localStorage.getItem(clearedKey);
+      if (storedCleared) {
+        try {
+          setClearedNotifications(JSON.parse(storedCleared));
+        } catch (e) {
+          console.log('Error parsing cleared notifications:', e);
+        }
+      }
+
+      // Notification check time initialization removed
     }
   }, []);
 
@@ -141,24 +157,38 @@ export default function BalancePage() {
 
   useEffect(() => {
     if (!initialized) return;
-    async function fetchBalance() {
+    
+    // Debounce balance fetching to prevent rapid successive calls
+    if (fetchTimeoutRef.current) {
+      clearTimeout(fetchTimeoutRef.current);
+    }
+    
+    fetchTimeoutRef.current = setTimeout(async () => {
+      if (!email || !password) return;
+      
       try {
-        setLoading(true);
+        console.log('🔄 Fetching balance...');
+        // Only show loading if we don't have a balance yet (first load)
+        if (balance === 0) {
+          setLoading(true);
+        }
         
         const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/balance`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ email, password: getPasswordForAPI() }),
         });
-        
+      
         if (res.ok) {
           const data = await res.json();
           const newBalance = parseFloat(data.balance);
+          console.log('✅ Balance fetched successfully:', newBalance);
           
           // Store balance for this user
           const balanceKey = `lastBalance_${email}`;
           sessionStorage.setItem(balanceKey, newBalance.toString());
           
+          // Set animation from current balance, then update to new balance
           setAnimationFrom(balance);
           setBalance(newBalance);
           setError(null);
@@ -172,7 +202,7 @@ export default function BalancePage() {
               ? `💰 Balance increased by $${change.toFixed(2)}`
               : `💸 Balance decreased by $${Math.abs(change).toFixed(2)}`;
             
-            if (!notifications.includes(notification)) {
+            if (!notifications.includes(notification) && !clearedNotifications.includes(notification)) {
               setNotifications(prev => [...prev, notification]);
             }
           }
@@ -183,19 +213,175 @@ export default function BalancePage() {
           throw new Error(errorData.detail || "Failed to fetch balance");
         }
       } catch (err: unknown) {
-        console.log("Balance fetch error:", err);
+        console.log("❌ Balance fetch error:", err);
         const errorMessage = err instanceof Error ? err.message : String(err);
         setError(errorMessage);
       } finally {
+        console.log('🏁 Setting loading to false');
         setLoading(false);
       }
-    }
-    if (email && password) {
-      fetchBalance();
-    }
-  }, [email, password, initialized, firstVisit, notifications]);
+    }, 300); // 300ms debounce delay
+    
+    return () => {
+      if (fetchTimeoutRef.current) {
+        clearTimeout(fetchTimeoutRef.current);
+      }
+    };
+  }, [email, password, initialized, firstVisit, refreshTrigger]);
 
-  // Check for new transfer notifications
+  // Force refresh balance when component mounts (after navigation)
+  useEffect(() => {
+    if (email && password && initialized) {
+      // Small delay to ensure the page is fully loaded, then trigger a re-render
+      const timer = setTimeout(() => {
+        // Trigger a refresh by updating the state
+        setRefreshTrigger(prev => prev + 1);
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [initialized]); // Only run when component mounts
+
+  // Listen for storage changes to refresh balance when returning from other pages
+  useEffect(() => {
+    const handleStorageChange = (e?: StorageEvent) => {
+      if (email && password) {
+        // Only trigger refresh for specific events, not focus
+        if (e && e.key === 'balance_updated') {
+          setRefreshTrigger(prev => prev + 1);
+        }
+        
+        // Check for new notifications
+        if (e && e.key === 'notifications' && e.newValue) {
+          try {
+            const newNotifications = JSON.parse(e.newValue);
+            setNotifications(newNotifications);
+          } catch (err) {
+            console.log('Error parsing notifications:', err);
+          }
+        }
+      }
+    };
+    
+    window.addEventListener('storage', handleStorageChange);
+    
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+    };
+  }, [email, password]);
+
+  // Load notifications from localStorage on component mount
+  useEffect(() => {
+    try {
+      const storedNotifications = localStorage.getItem('notifications');
+      if (storedNotifications) {
+        const parsedNotifications = JSON.parse(storedNotifications);
+        console.log('📱 Loading notifications from localStorage:', parsedNotifications);
+        setNotifications(parsedNotifications);
+      }
+    } catch (err) {
+      console.log('Error loading notifications:', err);
+    }
+  }, []);
+
+  // Constant polling for balance, transaction, and notification updates
+  useEffect(() => {
+    if (!email || !password || !initialized) return;
+    
+    async function pollForUpdates() {
+      try {
+        // Fetch balance, transactions, and notifications in parallel
+        const [balanceRes, transactionsRes] = await Promise.all([
+          fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/balance`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email, password: getPasswordForAPI() }),
+          }),
+          fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/transactions`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email, password: getPasswordForAPI() }),
+          })
+        ]);
+        
+        // Update balance if changed
+        if (balanceRes.ok) {
+          const balanceData = await balanceRes.json();
+          const newBalance = parseFloat(balanceData.balance);
+          
+          if (newBalance !== balance) {
+            console.log('🔄 Balance updated via polling:', balance, '->', newBalance);
+            setAnimationFrom(balance);
+            setBalance(newBalance);
+            
+            // Store updated balance
+            const balanceKey = `lastBalance_${email}`;
+            sessionStorage.setItem(balanceKey, newBalance.toString());
+          }
+        }
+        
+        // Update transactions if changed and history is shown
+        if (transactionsRes.ok) {
+          const transactionsData = await transactionsRes.json();
+          
+          // Update transaction history if it's currently shown
+          if (showHistory && JSON.stringify(transactionsData) !== JSON.stringify(transactions)) {
+            console.log('🔄 Transactions updated via polling');
+            setTransactions(transactionsData);
+          }
+          
+          const currentTime = Date.now();
+          
+          // Check for recent Transfer In transactions (last 2 minutes)
+          const recentIncomingTransfers = transactionsData.filter((tx: Transaction) => 
+            tx.type === "Transfer In" &&
+            new Date(tx.timestamp).getTime() > currentTime - 120000 // Last 2 minutes
+          );
+          
+          if (recentIncomingTransfers.length > 0) {
+            recentIncomingTransfers.forEach((tx: Transaction) => {
+              const notification = `💰 Received $${tx.amount} from ${tx.description || 'an unknown user'}`;
+              
+              // Check if this notification already exists
+              const currentNotifications = JSON.parse(localStorage.getItem('notifications') || '[]');
+              if (!currentNotifications.includes(notification) && !clearedNotifications.includes(notification)) {
+                currentNotifications.push(notification);
+                localStorage.setItem('notifications', JSON.stringify(currentNotifications));
+                setNotifications(currentNotifications);
+              }
+            });
+          }
+        }
+        
+        // Update notifications from localStorage (in case they were updated by other tabs)
+        const storedNotifications = localStorage.getItem('notifications');
+        if (storedNotifications) {
+          try {
+            const parsedNotifications = JSON.parse(storedNotifications);
+            if (JSON.stringify(parsedNotifications) !== JSON.stringify(notifications)) {
+              console.log('🔄 Notifications updated via polling');
+              setNotifications(parsedNotifications);
+            }
+          } catch (err) {
+            console.log('Error parsing notifications:', err);
+          }
+        }
+      } catch (err) {
+        console.log("Polling error:", err);
+      }
+    }
+    
+    // Poll every 3 seconds for real-time updates
+    const interval = setInterval(pollForUpdates, 3000);
+    
+    // Also run immediately
+    pollForUpdates();
+    
+    return () => clearInterval(interval);
+  }, [email, password, initialized, balance, clearedNotifications, showHistory, transactions, notifications]);
+
+  // Check for new transfer notifications - DISABLED to prevent duplicates
+  // This will be re-enabled when we implement a proper notification system
+  /*
   useEffect(() => {
     if (!email || !password) return;
     
@@ -208,20 +394,29 @@ export default function BalancePage() {
         });
         if (res.ok) {
           const data = await res.json();
+          const currentTime = Date.now();
+          
+          // Only check for transfers that happened after our last check
           const recentTransfers = data.filter((tx: Transaction) => 
             (tx.type === "Transfer In" || tx.type === "Transfer Out") &&
-            new Date(tx.timestamp) > new Date(Date.now() - 60000) // Last minute
+            new Date(tx.timestamp).getTime() > lastNotificationCheck &&
+            new Date(tx.timestamp).getTime() > currentTime - 300000 // Last 5 minutes
           );
           
-          recentTransfers.forEach((tx: Transaction) => {
-            const notification = tx.type === "Transfer In" 
-              ? `💰 Received $${tx.amount} from ${tx.description || 'an unknown user'}`
-              : `💸 Sent $${tx.amount} to ${tx.description || 'an unknown user'}`;
+          if (recentTransfers.length > 0) {
+            recentTransfers.forEach((tx: Transaction) => {
+              const notification = tx.type === "Transfer In" 
+                ? `💰 Received $${tx.amount} from ${tx.description || 'an unknown user'}`
+                : `💸 Sent $${tx.amount} to ${tx.description || 'an unknown user'}`;
+              
+              if (!notifications.includes(notification) && !clearedNotifications.includes(notification)) {
+                setNotifications(prev => [...prev, notification]);
+              }
+            });
             
-            if (!notifications.includes(notification)) {
-              setNotifications(prev => [...prev, notification]);
-            }
-          });
+            // Update the last check time
+            setLastNotificationCheck(currentTime);
+          }
         }
       } catch (err) {
         console.log("Transfer notification check error:", err);
@@ -231,7 +426,8 @@ export default function BalancePage() {
     // Check every 30 seconds for new transfers
     const interval = setInterval(checkForNewTransfers, 30000);
     return () => clearInterval(interval);
-  }, [email, password, notifications]);
+  }, [email, password]);
+  */
 
   useEffect(() => {
     async function fetchTransactions() {
@@ -309,7 +505,7 @@ export default function BalancePage() {
       console.log("Session manager started 15 min timeout with button-click detection");
       initSessionManager(
         (status) => {
-          console.log(`Session Status: ${status.timeRemaining} remaining - Updates every 5s, 1s countdown in last 30s`);
+          console.log(`Session Status: ${status.timeRemaining} remaining - Logs every 30s, 1s countdown in last 30s`);
           setSessionStatus(status);
         },
         () => {
@@ -344,7 +540,7 @@ export default function BalancePage() {
   return (
     <div className={`min-h-screen flex items-center justify-center transition-colors duration-200 ${
       isDarkMode 
-        ? 'bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900' 
+        ? 'bg-gradient-to-br from-blue-950 via-gray-900 to-blue-950' 
         : 'bg-gradient-to-br from-blue-100 via-white to-blue-200'
     }`}>
       <div className={`shadow-xl rounded-3xl px-12 py-14 max-w-4xl w-full flex flex-col items-center transition-colors duration-200 ${
@@ -382,7 +578,7 @@ export default function BalancePage() {
                   }`}
                   onClick={() => setDropdownOpen(false)}
                 >
-                  Profile
+                  Account
                 </a>
                 <button
                   onClick={handleLogout}
@@ -483,13 +679,23 @@ export default function BalancePage() {
             </div>
             <div className="flex justify-center gap-6 mb-8 w-full">
               <button
-                onClick={() => router.push('/deposit')}
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  router.push('/deposit');
+                }}
                 className="px-8 py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xl font-semibold shadow transition w-48"
               >
                 Deposit
               </button>
               <button
-                onClick={() => router.push('/withdraw')}
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  router.push('/withdraw');
+                }}
                 className={`px-8 py-4 rounded-xl text-xl font-semibold shadow transition w-48 border ${
                   isDarkMode 
                     ? 'bg-gray-700 hover:bg-gray-600 text-gray-200 border-gray-600' 
@@ -502,7 +708,12 @@ export default function BalancePage() {
           </div>
         )}
         <button
-          onClick={() => setShowHistory((prev) => !prev)}
+          type="button"
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            setShowHistory((prev) => !prev);
+          }}
           className="mb-6 px-6 py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-xl w-max mx-auto transition-colors mt-4 text-lg font-semibold"
           aria-expanded={showHistory}
           aria-controls="transaction-history"
@@ -569,7 +780,12 @@ export default function BalancePage() {
           )}
         </div>
         <button
-          onClick={() => router.push('/transfer')}
+          type="button"
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            router.push('/transfer');
+          }}
           className="mt-6 px-6 py-3 bg-green-600 hover:bg-green-700 text-white rounded-xl w-max mx-auto transition-colors text-lg font-semibold"
         >
           Transfer Money
@@ -647,7 +863,22 @@ export default function BalancePage() {
                   isDarkMode ? 'border-gray-600' : 'border-blue-200'
                 }`}>
                   <button
-                    onClick={() => setNotifications([])}
+                    onClick={() => {
+                      const currentUserEmail = sessionStorage.getItem('email');
+                      const clearedKey = currentUserEmail ? `clearedNotifications_${currentUserEmail}` : 'clearedNotifications';
+                      
+                      // Add current notifications to cleared list
+                      const newClearedNotifications = [...clearedNotifications, ...notifications];
+                      setClearedNotifications(newClearedNotifications);
+                      
+                      // Save to localStorage
+                      localStorage.setItem(clearedKey, JSON.stringify(newClearedNotifications));
+                      
+                      // Clear current notifications
+                      console.log('🧹 Clearing notifications:', notifications);
+                      setNotifications([]);
+                      localStorage.setItem('notifications', JSON.stringify([]));
+                    }}
                     className={`w-full py-2 px-4 rounded-lg text-sm font-medium transition-colors ${
                       isDarkMode 
                         ? 'bg-gray-700 hover:bg-gray-600 text-gray-200' 

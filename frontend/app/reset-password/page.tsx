@@ -72,7 +72,7 @@ export default function ResetPasswordPage() {
   return (
     <div className={`min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 ${
       isDarkMode 
-        ? 'bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900' 
+        ? 'bg-gradient-to-br from-blue-950 via-gray-900 to-blue-950'
         : 'bg-gradient-to-br from-blue-100 via-white to-blue-200'
     }`}>
       <div className={`max-w-2xl w-full space-y-8 ${

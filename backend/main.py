@@ -281,15 +281,43 @@ def create_db():
 # Helpers
 def hash_password(password: str) -> str:
     logger.info("Hashing password...")
-    hashed = pwd_context.hash(password)
-    logger.info("Password hashed successfully")
-    return hashed
+    try:
+        # Handle long access tokens by truncating them for bcrypt
+        if len(password) > 72:
+            logger.info(f"Password too long ({len(password)} chars), truncating to 72 chars for bcrypt")
+            password = password[:72]
+        
+        # Use a more robust hashing approach
+        import hashlib
+        # First hash with SHA256 to ensure consistent length
+        password_hash = hashlib.sha256(password.encode()).hexdigest()
+        # Then hash with bcrypt (this will always be 64 chars)
+        hashed = pwd_context.hash(password_hash)
+        logger.info("Password hashed successfully")
+        return hashed
+    except Exception as e:
+        logger.error(f"Error hashing password: {e}")
+        raise
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     logger.info("Verifying password...")
-    is_valid = pwd_context.verify(plain_password, hashed_password)
-    logger.info(f"Password verification result: {'SUCCESS' if is_valid else 'FAILED'}")
-    return is_valid
+    try:
+        # Handle long access tokens by truncating them for bcrypt
+        if len(plain_password) > 72:
+            logger.info(f"Password too long ({len(plain_password)} chars), truncating to 72 chars for bcrypt")
+            plain_password = plain_password[:72]
+        
+        # Use the same hashing approach as hash_password
+        import hashlib
+        # First hash with SHA256 to ensure consistent length
+        password_hash = hashlib.sha256(plain_password.encode()).hexdigest()
+        # Then verify with bcrypt
+        is_valid = pwd_context.verify(password_hash, hashed_password)
+        logger.info(f"Password verification result: {'SUCCESS' if is_valid else 'FAILED'}")
+        return is_valid
+    except Exception as e:
+        logger.error(f"Authentication error for password verification: {e}")
+        return False
 
 def authenticate(email: str, password: str):
     logger.info(f"Authenticating user: email={email}")
@@ -313,9 +341,15 @@ def authenticate(email: str, password: str):
             # If that fails, allow OAuth users (their DB password is a hash of the sentinel)
             if not is_valid:
                 logger.info("Primary password failed; attempting OAuth sentinel fallback")
-                is_valid = verify_password("GOOGLE_OAUTH_USER_NO_PASSWORD", hashed_password)
+                # Check for Google OAuth users
+                is_valid = verify_password("GOOGLE_OAUTH", hashed_password)
                 if is_valid:
-                    logger.info("OAuth sentinel matched; treating as authenticated OAuth user")
+                    logger.info("Google OAuth sentinel matched; treating as authenticated OAuth user")
+                else:
+                    # Check for Facebook OAuth users
+                    is_valid = verify_password("FB_OAUTH", hashed_password)
+                    if is_valid:
+                        logger.info("Facebook OAuth sentinel matched; treating as authenticated OAuth user")
             logger.info(f"Password verification result: {'SUCCESS' if is_valid else 'FAILED'} for email={email}")
             return is_valid
         else:
@@ -624,7 +658,8 @@ def create_or_get_google_user(google_info: dict) -> dict:
                     counter += 1
                 
                 # Create user with empty password (Google OAuth user)
-                empty_password_hash = hash_password("GOOGLE_OAUTH_USER_NO_PASSWORD")
+                # Use a shorter password to avoid bcrypt length issues
+                empty_password_hash = hash_password("GOOGLE_OAUTH")
                 
                 cursor.execute(
                     f"INSERT INTO users (username, email, display_name, password, dob_month, dob_day, dob_year, phone) VALUES ({placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder})",
@@ -748,7 +783,8 @@ def create_or_get_facebook_user(facebook_info: dict) -> dict:
                     counter += 1
                 
                 # Create user with empty password (Facebook OAuth user)
-                empty_password_hash = hash_password("FACEBOOK_OAUTH_USER_NO_PASSWORD")
+                # Use a shorter password to avoid bcrypt length issues
+                empty_password_hash = hash_password("FB_OAUTH")
                 
                 cursor.execute(
                     f"INSERT INTO users (username, email, display_name, password, dob_month, dob_day, dob_year, phone) VALUES ({placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder})",
@@ -961,6 +997,8 @@ def facebook_auth(request: FacebookAuthRequest):
         # Return success response
         logger.info("Step 3: Preparing response...")
         message = "Welcome to BlueBank!" if user_info['is_new'] else "Welcome back!"
+        # Issue a JWT access token for the session
+        access_token = generate_access_token(user_info['email'])
         
         response = FacebookLoginResponse(
             message=message,
@@ -970,10 +1008,12 @@ def facebook_auth(request: FacebookAuthRequest):
                 "display_name": user_info['display_name'],
                 "is_new": user_info['is_new'],
                 "linked_account": user_info.get('linked_account', False)
-            }
+            },
+            access_token=access_token
         )
-        logger.info("Step 3 SUCCESS: Response prepared, sending to frontend")
-        return response
+        payload = response.model_dump()
+        logger.info(f"Step 3 SUCCESS: Response prepared with access_token length: {len(access_token)}; sending to frontend")
+        return payload
         
     except HTTPException as he:
         # Re-raise HTTP exceptions with more details
@@ -1009,9 +1049,9 @@ def facebook_config(request: Request):
         scheme = forwarded_proto or request.url.scheme or "http"
         if host == "localhost":
             host = "localhost:8080"
-        dynamic_redirect = f"{scheme}://{host}/auth/facebook/callback"
+        dynamic_redirect = f"{scheme}://{host}/oauth-callback"
     except Exception:
-        dynamic_redirect = "http://localhost:8080/auth/facebook/callback"
+        dynamic_redirect = "http://localhost:8080/oauth-callback"
 
     if environment != "development" and facebook_redirect_uri:
         redirect_uri = facebook_redirect_uri
