@@ -8,8 +8,8 @@ export default function HomePage() {
   return (
     <div className={`min-h-screen flex items-center justify-center ${
       isDarkMode 
-        ? 'bg-gray-900' // Simple dark background to match device
-        : 'bg-gray-50'  // Simple light background to match device
+        ? 'bg-gradient-to-br from-blue-950 via-gray-900 to-blue-950' // Dark blue gradient for dark mode
+        : 'bg-gradient-to-br from-blue-50 via-white to-blue-50'  // Light blue gradient for light mode
     }`}>
       <div className={`shadow-xl rounded-3xl px-10 py-12 max-w-md w-full flex flex-col items-center transition-colors duration-200 ${
         isDarkMode ? 'bg-gray-800/90' : 'bg-white/90'
