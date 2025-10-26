@@ -940,39 +940,47 @@ def google_auth(request: Request, payload: GoogleAuthRequest):
 @app.get("/api/auth/google/config")
 def google_config(request: Request):
     """Get Google OAuth configuration for frontend"""
-    google_client_id = os.getenv("GOOGLE_CLIENT_ID")
-    google_client_secret = os.getenv("GOOGLE_CLIENT_SECRET") 
-    google_redirect_uri = os.getenv("GOOGLE_REDIRECT_URI")
-    environment = os.getenv("ENVIRONMENT", "development")
-    
-    logger.info(f"Google OAuth config request (environment: {environment})")
-    
-    if not google_client_id:
-        raise HTTPException(status_code=500, detail="Google OAuth not configured")
-    
-    # Prefer dynamic redirect based on incoming request host (works behind Nginx and in Docker)
     try:
-        forwarded_proto = request.headers.get("x-forwarded-proto")
-        forwarded_host = request.headers.get("x-forwarded-host")
-        host = forwarded_host or request.headers.get("host") or "localhost:8080"
-        scheme = forwarded_proto or request.url.scheme or "http"
-        # If Host header is just 'localhost', add :8080 when behind our container
-        if host == "localhost":
-            host = "localhost:8080"
-        dynamic_redirect = f"{scheme}://{host}/oauth-callback"
-    except Exception:
-        dynamic_redirect = "http://localhost:8080/oauth-callback"
+        google_client_id = os.getenv("GOOGLE_CLIENT_ID")
+        google_client_secret = os.getenv("GOOGLE_CLIENT_SECRET") 
+        google_redirect_uri = os.getenv("GOOGLE_REDIRECT_URI")
+        environment = os.getenv("ENVIRONMENT", "development")
+        
+        logger.info(f"Google OAuth config request (environment: {environment})")
+        
+        if not google_client_id:
+            logger.error("Google OAuth not configured - GOOGLE_CLIENT_ID missing")
+            raise HTTPException(status_code=500, detail="Google OAuth not configured")
+        
+        # Prefer dynamic redirect based on incoming request host (works behind Nginx and in Docker)
+        try:
+            forwarded_proto = request.headers.get("x-forwarded-proto")
+            forwarded_host = request.headers.get("x-forwarded-host")
+            host = forwarded_host or request.headers.get("host") or "localhost:8080"
+            scheme = forwarded_proto or request.url.scheme or "http"
+            # If Host header is just 'localhost', add :8080 when behind our container
+            if host == "localhost":
+                host = "localhost:8080"
+            dynamic_redirect = f"{scheme}://{host}/oauth-callback"
+        except Exception as e:
+            logger.warning(f"Error building dynamic redirect: {e}")
+            dynamic_redirect = "http://localhost:8080/oauth-callback"
 
-    # Fallbacks: explicit env for production, dynamic for dev/container
-    if environment != "development" and google_redirect_uri:
-        redirect_uri = google_redirect_uri
-    else:
-        redirect_uri = dynamic_redirect
-    
-    return {
-        "client_id": google_client_id,
-        "redirect_uri": redirect_uri
-    }
+        # Fallbacks: explicit env for production, dynamic for dev/container
+        if environment != "development" and google_redirect_uri:
+            redirect_uri = google_redirect_uri
+        else:
+            redirect_uri = dynamic_redirect
+        
+        logger.info(f"Google OAuth config response: client_id={google_client_id[:20]}..., redirect_uri={redirect_uri}")
+        
+        return {
+            "client_id": google_client_id,
+            "redirect_uri": redirect_uri
+        }
+    except Exception as e:
+        logger.error(f"Error in Google OAuth config endpoint: {e}")
+        raise HTTPException(status_code=500, detail=f"OAuth config error: {str(e)}")
 
 @app.post("/api/auth/facebook")
 def facebook_auth(request: FacebookAuthRequest):
