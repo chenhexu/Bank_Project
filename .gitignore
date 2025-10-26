@@ -1,8 +1,15 @@
-# Environment files - temporarily commented out for development
-# .env
-# backend/.env
-# backend/Api_Key.env
-# *.env
+# Environment files
+.env
+backend/.env
+backend/Api_Key.env
+*.env
+
+# SSH Keys and sensitive files
+*.pem
+*.key
+ssh_log.txt
+UsefulCommandsSSH.txt
+DELETEME.txt
 
 # Database files
 *.db
