@@ -13,6 +13,9 @@ A full-stack banking application built with FastAPI, Next.js, and Docker. Featur
 ### Dashboard
 ![Dashboard](docs/screenshots/dashboard.png)
 
+### System Architecture
+![System Architecture](docs/screenshots/architecture-diagram.png)
+
 ## Features
 
 ### Core Banking Operations
@@ -214,85 +217,32 @@ docker-compose -f docker/docker-compose.dev.yml up
 docker run -d -p 8080:80 --name bluebank bluebank
 ```
 
+## System Architecture
+
+![System Architecture](docs/screenshots/architecture-diagram.png)
+
 ## Project Structure
 
-```mermaid
-graph TD
-    ROOT[Bank_Project/]
-    
-    ROOT --> BACKEND[backend/]
-    ROOT --> FRONTEND[frontend/]
-    ROOT --> DOCKER[docker/]
-    ROOT --> DOCS[docs/]
-    ROOT --> SCRIPTS[scripts/]
-    ROOT --> CONFIG_FILES[Configuration Files]
-    
-    BACKEND --> BE_MAIN[main.py - FastAPI application]
-    BACKEND --> BE_DB[database.py - DB connection]
-    BACKEND --> BE_MODELS[models.py - SQLAlchemy models]
-    BACKEND --> BE_SCHEMAS[schemas.py - Pydantic schemas]
-    BACKEND --> BE_AUTH[auth.py - Authentication]
-    BACKEND --> BE_REQ[requirements.txt - Dependencies]
-    BACKEND --> BE_ENV[env.template - Environment template]
-    BACKEND --> BE_DOCKERFILE[Dockerfile - Backend container]
-    BACKEND --> BE_DATA[data/ - Database files]
-    
-    FRONTEND --> FE_APP[app/ - Next.js App Router]
-    FRONTEND --> FE_COMPONENTS[components/ - React components]
-    FRONTEND --> FE_CONTEXTS[contexts/ - React contexts]
-    FRONTEND --> FE_PUBLIC[public/ - Static assets]
-    FRONTEND --> FE_PACKAGE[package.json - Dependencies]
-    FRONTEND --> FE_TAILWIND[tailwind.config.js - Styling]
-    FRONTEND --> FE_TSCONFIG[tsconfig.json - TypeScript config]
-    FRONTEND --> FE_DOCKERFILE[Dockerfile - Frontend container]
-    
-    FE_APP --> APP_LOGIN[login/ - Login page]
-    FE_APP --> APP_REGISTER[register/ - Registration page]
-    FE_APP --> APP_BALANCE[balance/ - Dashboard page]
-    FE_APP --> APP_TRANSFER[transfer/ - Transfer page]
-    FE_APP --> APP_DEPOSIT[deposit/ - Deposit page]
-    FE_APP --> APP_WITHDRAW[withdraw/ - Withdraw page]
-    FE_APP --> APP_PROFILE[profile/ - Profile page]
-    FE_APP --> APP_HISTORY[history/ - Transaction history]
-    FE_APP --> APP_AUTH[auth/ - OAuth callbacks]
-    FE_APP --> APP_LAYOUT[layout.js - Root layout]
-    FE_APP --> APP_HOME[page.js - Home page]
-    FE_APP --> APP_GLOBALS[globals.css - Global styles]
-    
-    FE_COMPONENTS --> COMP_ANIMATED[AnimatedDigit.tsx]
-    FE_COMPONENTS --> COMP_COUNTER[CounterScroller.tsx]
-    FE_COMPONENTS --> COMP_DIGIT[DigitScroller.tsx]
-    
-    FE_CONTEXTS --> CTX_DARK[DarkModeContext.tsx]
-    
-    DOCKER --> DOCKER_COMPOSE[docker-compose.yml]
-    DOCKER --> DOCKER_DEV[docker-compose.dev.yml]
-    
-    DOCS --> DOCS_AWS[AWS_DEPLOYMENT.md]
-    DOCS --> DOCS_SETUP[AWS_SETUP_CHECKLIST.md]
-    DOCS --> DOCS_DEPLOY[DEPLOYMENT.md]
-    DOCS --> DOCS_QUICK[QUICK_START.md]
-    DOCS --> DOCS_SCREENSHOTS[screenshots/]
-    
-    SCRIPTS --> SCRIPTS_SETUP[setup.ps1 / setup.sh]
-    SCRIPTS --> SCRIPTS_START[start.bat / start.sh]
-    SCRIPTS --> SCRIPTS_DEPLOY[deploy-aws.ps1 / deploy-aws.sh]
-    
-    CONFIG_FILES --> CONF_README[README.md]
-    CONFIG_FILES --> CONF_ARCH[ARCHITECTURE.md]
-    CONFIG_FILES --> CONF_DOCKER_README[DOCKER_README.md]
-    CONFIG_FILES --> CONF_PROJECT[PROJECT_STRUCTURE.md]
-    CONFIG_FILES --> CONF_NGINX[nginx.conf]
-    CONFIG_FILES --> CONF_DOCKERFILE[Dockerfile - Multi-stage build]
-    CONFIG_FILES --> CONF_GITIGNORE[.gitignore]
-    
-    style ROOT fill:#e1f5ff
-    style BACKEND fill:#fff3e0
-    style FRONTEND fill:#f3e5f5
-    style DOCKER fill:#e8f5e9
-    style DOCS fill:#fff9c4
-    style SCRIPTS fill:#fce4ec
-    style CONFIG_FILES fill:#e0f2f1
+```
+Bank_Project/
+├── backend/                 # FastAPI backend
+│   ├── main.py             # Main application file
+│   ├── database.py         # Database configuration
+│   ├── models.py           # SQLAlchemy models
+│   ├── schemas.py          # Pydantic schemas
+│   ├── auth.py             # Authentication logic
+│   ├── requirements.txt    # Python dependencies
+│   └── env.template        # Environment template
+├── frontend/               # Next.js frontend
+│   ├── app/               # App router pages
+│   ├── components/        # React components
+│   ├── contexts/          # React contexts
+│   ├── package.json       # Node.js dependencies
+│   └── tailwind.config.js # Tailwind configuration
+├── docker/                # Docker configurations
+├── docs/                  # Documentation
+├── scripts/               # Deployment scripts
+└── README.md             # This file
 ```
 
 ## API Endpoints
