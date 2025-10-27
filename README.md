@@ -1,5 +1,7 @@
 # BlueBank - Modern Banking Application
 
+**🌐 Live Demo:** [https://bluebank.tarch.ca](https://bluebank.tarch.ca)
+
 A full-stack banking application built with FastAPI, Next.js, and Docker. Features include user authentication, banking operations, and a modern responsive UI with cloud database integration.
 
 ## Screenshots
