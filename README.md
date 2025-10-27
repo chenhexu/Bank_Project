@@ -15,9 +15,6 @@ A full-stack banking application built with FastAPI, Next.js, and Docker. Featur
 ### Dashboard
 ![Dashboard](docs/screenshots/dashboard.png)
 
-### System Architecture
-![System Architecture](docs/screenshots/architecture-diagram.png)
-
 ## Features
 
 ### Core Banking Operations
