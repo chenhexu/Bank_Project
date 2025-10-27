@@ -181,7 +181,6 @@ option_settings:
   aws:elasticbeanstalk:application:environment:
     GMAIL_EMAIL: "your-actual-email@gmail.com"
     GMAIL_APP_PASSWORD: "your-actual-app-password"
-    SENDGRID_API_KEY: "your-actual-sendgrid-key"
 ```
 
 ## 🚨 Troubleshooting

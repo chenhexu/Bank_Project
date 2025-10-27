@@ -40,8 +40,6 @@ load_dotenv(os.path.join(os.path.dirname(__file__), ".env"))  # Try same directo
 env_vars = {k: v for k, v in os.environ.items() if 'PASSWORD' not in k.upper() and 'KEY' not in k.upper() and 'SECRET' not in k.upper()}
 logger.info(f"Environment variables loaded: {env_vars}")
 
-from sendgrid import SendGridAPIClient
-from sendgrid.helpers.mail import Mail
 from google.auth.transport import requests as google_requests
 from google.oauth2 import id_token
 import requests
@@ -80,7 +78,7 @@ async def startup_event():
     logger.info("Checking environment variables...")
     
     # Check critical environment variables
-    critical_vars = ["DATABASE_URL", "SENDGRID_API_KEY", "GMAIL_EMAIL", "GMAIL_APP_PASSWORD", "GOOGLE_CLIENT_SECRET"]
+    critical_vars = ["DATABASE_URL", "GMAIL_EMAIL", "GMAIL_APP_PASSWORD", "GOOGLE_CLIENT_SECRET"]
     for var in critical_vars:
         value = os.getenv(var)
         if value:
@@ -409,26 +407,6 @@ def record_transaction(username, type_, amount, old_balance, new_balance, other_
         logger.error(f"Error recording transaction for username={username}: {e}")
         raise
 
-def send_welcome_email(to_email, display_name):
-    logger.info(f"Attempting to send welcome email to: {to_email}")
-    message = Mail(
-        from_email=os.environ.get("BLUEBANK_EMAIL_FROM", "noreply@yourdomain.com"),
-        to_emails=to_email,
-        subject="Welcome to BlueBank!",
-        html_content=f"""
-        <p>Hi {display_name},</p>
-        <p>We're very happy to see you with us at BlueBank! 🎉</p>
-        <p>Best regards,<br/>The BlueBank Team</p>
-        """
-    )
-    try:
-        logger.info("Using SendGrid to send email...")
-        sg = SendGridAPIClient(os.environ["SENDGRID_API_KEY"])
-        response = sg.send(message)
-        logger.info(f"SendGrid email sent successfully: status={response.status_code}, to={to_email}")
-    except Exception as e:
-        logger.error(f"Failed to send welcome email via SendGrid: {e}")
-        raise
 
 def get_balance_by_email(email: str) -> Decimal:
     logger.info(f"Getting balance by email: {email}")
@@ -669,12 +647,8 @@ def create_or_get_google_user(google_info: dict) -> dict:
                 
                 logger.info(f"New Google user created: email={email}, username={username}")
                 
-                # Send welcome email
-                try:
-                    send_welcome_email(email, name or given_name or username)
-                    logger.info("Welcome email sent to new Google user")
-                except Exception as e:
-                    logger.warning(f"Failed to send welcome email to Google user: {e}")
+                # Welcome email functionality removed - using Gmail SMTP only
+                logger.info("Google user registered successfully")
                 
                 return {
                     "username": username,
@@ -794,12 +768,8 @@ def create_or_get_facebook_user(facebook_info: dict) -> dict:
                 
                 logger.info(f"New Facebook user created: email={email}, username={username}")
                 
-                # Send welcome email
-                try:
-                    send_welcome_email(email, display_name or username)
-                    logger.info("Welcome email sent to new Facebook user")
-                except Exception as e:
-                    logger.warning(f"Failed to send welcome email to Facebook user: {e}")
+                # Welcome email functionality removed - using Gmail SMTP only
+                logger.info("Facebook user registered successfully")
                 
                 return {
                     "username": username,
@@ -829,12 +799,8 @@ def register(user: User):
             conn.commit()
         logger.info(f"User inserted into database successfully: email={user.email}")
         
-        try:
-            logger.info("Attempting to send welcome email...")
-            send_welcome_email(user.email, user.display_name or user.username)
-            logger.info("Welcome email sent successfully")
-        except Exception as e:
-            logger.warning(f"Failed to send welcome email: {e}")
+        # Welcome email functionality removed - using Gmail SMTP only
+        logger.info("User registration completed successfully")
         
         logger.info(f"Registration successful: email={user.email}")
         return {"message": "User registered successfully"}
